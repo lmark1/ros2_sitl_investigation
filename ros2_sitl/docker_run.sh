@@ -13,6 +13,12 @@ cd "$(dirname "$0")"
 mkdir -p ~/.ssh
 ln -sf "$SSH_AUTH_SOCK" ~/.ssh/ssh_auth_sock
 
+# X cookie for the root user inside, same trick as uav_ros_simulation/run_docker.sh.
+XSOCK=/tmp/.X11-unix
+XAUTH=/tmp/.docker.xauth
+touch $XAUTH
+xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge - 2>/dev/null || true
+
 if docker ps -a --format '{{.Names}}' | grep -qx ros2_sitl; then
     if docker ps --format '{{.Names}}' | grep -qx ros2_sitl; then
         exec docker exec -it ros2_sitl bash
@@ -23,7 +29,8 @@ fi
 exec docker run -it --network host --privileged \
   --gpus all --env NVIDIA_DRIVER_CAPABILITIES=all \
   --volume ~/.ssh/ssh_auth_sock:/ssh-agent --env SSH_AUTH_SOCK=/ssh-agent \
-  --volume /tmp/.X11-unix:/tmp/.X11-unix:rw --env DISPLAY="$DISPLAY" \
+  --volume $XSOCK:$XSOCK:rw --volume $XAUTH:$XAUTH:rw \
+  --env XAUTHORITY=$XAUTH --env DISPLAY="$DISPLAY" --env TERM=xterm-256color \
   --volume "$(pwd):/root/ros2_sitl" \
   --env GZ_VERSION=harmonic \
   --name ros2_sitl ros2_sitl:jazzy "$@"

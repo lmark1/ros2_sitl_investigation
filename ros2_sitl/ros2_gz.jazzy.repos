@@ -1,0 +1,26 @@
+# Jazzy variant of https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos
+# Upstream pins ros_gz, sdformat_urdf and micro_ros_agent to humble branches.
+# On the Jazzy base ros_gz and sdformat_urdf come from apt (osrf/ros:jazzy-desktop-full),
+# micro_ros_agent from its jazzy branch (same as ardupilot/Tools/ros2/ros2.jazzy.repos).
+# Branches for the first build. Once the baseline flies the commits get pinned here.
+repositories:
+  ardupilot:
+    type: git
+    url: https://github.com/ArduPilot/ardupilot.git
+    version: master
+  ardupilot_gazebo:
+    type: git
+    url: https://github.com/ArduPilot/ardupilot_gazebo.git
+    version: ros2
+  ardupilot_gz:
+    type: git
+    url: https://github.com/ArduPilot/ardupilot_gz.git
+    version: main
+  ardupilot_sitl_models:
+    type: git
+    url: https://github.com/ArduPilot/SITL_Models.git
+    version: main
+  micro_ros_agent:
+    type: git
+    url: https://github.com/micro-ROS/micro-ROS-Agent.git
+    version: jazzy
