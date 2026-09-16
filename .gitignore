@@ -1,0 +1,3 @@
+# build/test byproducts, nothing from the container workspace lives here
+ros2_sitl/logs/
+*.log
