@@ -83,6 +83,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && /opt/ros/jazzy/lib/mavros/install_geographiclib_datasets.sh
 
+# Layer 9c: step 3. ArduPilotPlugin patch (gz.msgs.Actuators output for ACTUATOR
+# channels -> MulticopterMotorModel) and the kopterworx_gz package.
+COPY patches/ardupilot_gazebo_actuators.patch /root/patches/
+RUN cd /root/ros2_ws/src/ardupilot_gazebo && git apply /root/patches/ardupilot_gazebo_actuators.patch
+COPY kopterworx_gz /root/ros2_ws/src/kopterworx_gz
+RUN cd /root/ros2_ws && . /opt/ros/jazzy/setup.sh \
+    && colcon build --packages-select ardupilot_gazebo kopterworx_gz \
+       --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo 2>&1 | tail -n 20
+
 # Layer 10: environment. ros2_sitl_env.sh also adds <prefix>/share of ardupilot_gazebo
 # to GZ_SIM_RESOURCE_PATH and SDF_PATH, without it the package:// includes in the
 # upstream iris model do not resolve on Jazzy (ArduPilot/ardupilot_gazebo#109).

@@ -2,3 +2,7 @@
 # Parachute: the aircraft has one on a relay, SITL has no relay and master refuses to
 # arm ("Chute has no relay", not covered by ARMING_CHECK 0).
 CHUTE_ENABLED 0
+# Aircraft accelerometer trims from the real kopterworx (AHRS_TRIM_X -0.024 rad) make the
+# EKF report ~1.4 deg roll in a level sim. Zero them for SITL.
+AHRS_TRIM_X 0
+AHRS_TRIM_Y 0

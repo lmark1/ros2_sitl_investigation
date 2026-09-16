@@ -6,8 +6,14 @@ kopterworx_base.urdf.xacro (rotors_simulator based classic model). Rotor plugin 
 the rotors gazebo_motor_model ones, taken over 1:1 by gz::sim::systems::MulticopterMotorModel.
 Run from anywhere: python3 gen_model.py
 """
+import argparse
 import math
 import os
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--no-camera", action="store_true", help="drop the front RGB-D camera (classic default: on)")
+ap.add_argument("--lidar", action="store_true", help="add the velodyne style gpu_lidar (classic default: off)")
+ARGS = ap.parse_args()
 
 # ---- body (kopterworx_base.urdf.xacro) ----
 MASS = 9.0
@@ -107,6 +113,48 @@ def control(ch, joint):
         <servo_max>{SERVO_MAX}</servo_max>
       </control>"""
 
+# ---- sensors (classic: cam macro, front_facing_camera origin 0.2 0 0.05, depth camera 640x480 30 Hz;
+#      velodyne LiDAR-X: 440 samples, 16 lasers, 10 Hz, 1..50 m, origin 0.08 0 -0.1578 rpy -pi 0.1323 0) ----
+CAMERA_XML = "" if ARGS.no_camera else """
+    <link name="camera_link">
+      <pose>0.2 0 0.05 0 0 0</pose>
+      <inertial><mass>1e-5</mass><inertia><ixx>1e-12</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1e-12</iyy><iyz>0</iyz><izz>1e-12</izz></inertia></inertial>
+      <visual name="camera_visual"><geometry><box><size>0.05 0.05 0.05</size></box></geometry></visual>
+      <sensor name="camera" type="rgbd_camera">
+        <gz_frame_id>camera_link</gz_frame_id>
+        <update_rate>30</update_rate>
+        <always_on>1</always_on>
+        <camera name="head">
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image><width>640</width><height>480</height></image>
+          <clip><near>0.02</near><far>300</far></clip>
+          <noise><type>gaussian</type><mean>0.0</mean><stddev>0.007</stddev></noise>
+          <depth_camera><clip><near>0.1</near><far>10</far></clip></depth_camera>
+        </camera>
+      </sensor>
+    </link>
+    <joint name="camera_joint" type="fixed"><parent>base_link</parent><child>camera_link</child></joint>"""
+LIDAR_XML = "" if not ARGS.lidar else """
+    <link name="lidar_link">
+      <pose>0.08 0 -0.1578 -3.141592653589793 0.1323284641020683 0</pose>
+      <inertial><mass>1e-5</mass><inertia><ixx>1e-12</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1e-12</iyy><iyz>0</iyz><izz>1e-12</izz></inertia></inertial>
+      <sensor name="lidar" type="gpu_lidar">
+        <gz_frame_id>lidar_link</gz_frame_id>
+        <topic>lidar</topic>
+        <update_rate>10</update_rate>
+        <always_on>1</always_on>
+        <lidar>
+          <scan>
+            <horizontal><samples>440</samples><resolution>1</resolution><min_angle>-3.141592653589793</min_angle><max_angle>3.141592653589793</max_angle></horizontal>
+            <vertical><samples>16</samples><resolution>1</resolution><min_angle>-0.2617993877991494</min_angle><max_angle>0.2617993877991494</max_angle></vertical>
+          </scan>
+          <range><min>1.0</min><max>50.0</max><resolution>0.01</resolution></range>
+          <noise><type>gaussian</type><mean>0.0</mean><stddev>0.008</stddev></noise>
+        </lidar>
+      </sensor>
+    </link>
+    <joint name="lidar_joint" type="fixed"><parent>base_link</parent><child>lidar_link</child></joint>"""
+
 bx, by, bz = BODY_BOX
 rotors_xml = "".join(rotor_link(*r) for r in ROTORS)
 controls_xml = "".join(control(ch, f"rotor_{i}_joint") for i, _, _, _, ch in sorted(ROTORS, key=lambda r: r[4]))
@@ -155,6 +203,8 @@ sdf = f"""<?xml version="1.0"?>
         <dynamics><damping>1.0</damping></dynamics></axis>
     </joint>
 {rotors_xml}
+{CAMERA_XML}
+{LIDAR_XML}
 
     <!-- ground truth odometry, bridged to /odometry (nav_msgs/Odometry) -->
     <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
@@ -185,4 +235,4 @@ sdf = f"""<?xml version="1.0"?>
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "kopterworx", "model.sdf")
 open(out, "w").write(sdf)
 hover_w = math.sqrt(MASS * 9.81 / 4 / MOTOR_CONSTANT)
-print(f"wrote {os.path.normpath(out)}; predicted hover rotor speed {hover_w:.0f} rad/s = cmd {hover_w / THRUST_MULTIPLIER:.3f}")
+print(f"wrote {os.path.normpath(out)} (camera={'off' if ARGS.no_camera else 'on'}, lidar={'on' if ARGS.lidar else 'off'}); predicted hover rotor speed {hover_w:.0f} rad/s = cmd {hover_w / THRUST_MULTIPLIER:.3f}")
