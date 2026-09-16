@@ -70,4 +70,16 @@ RUN cd /root/ros2_ws && apt-get update && rosdep update \
        --skip-keys "microxrcedds_agent gz-cmake3 gz-sim8 gz-plugin2 gz-common5 gz-cmake4 gz-sim9 gz-plugin3 gz-common6 gz-cmake gz-sim gz-plugin gz-common gz-sim7" \
     && rm -rf /var/lib/apt/lists/*
 
+# Layer 9: build. ardupilot_sitl (waf, SITL with DDS), micro_ros_agent (fetches
+# Micro-XRCE-DDS-Agent), ardupilot_gazebo (gz plugin), ardupilot_gz_*.
+RUN cd /root/ros2_ws && . /opt/ros/jazzy/setup.sh \
+    && colcon build --packages-up-to ardupilot_gz_bringup \
+       --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    2>&1 | tail -n 200
+
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc \
+    && echo "source /root/ros2_ws/install/setup.bash" >> /root/.bashrc \
+    && echo "export GZ_VERSION=harmonic" >> /root/.bashrc \
+    && echo "export PATH=\$PATH:/root/ros2_ws/src/ardupilot/Tools/autotest" >> /root/.bashrc
+WORKDIR /root/ros2_ws
 CMD ["/bin/bash"]
