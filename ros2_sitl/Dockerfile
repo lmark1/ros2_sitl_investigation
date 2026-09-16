@@ -77,9 +77,10 @@ RUN cd /root/ros2_ws && . /opt/ros/jazzy/setup.sh \
        --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     2>&1 | tail -n 200
 
-RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc \
-    && echo "source /root/ros2_ws/install/setup.bash" >> /root/.bashrc \
-    && echo "export GZ_VERSION=harmonic" >> /root/.bashrc \
-    && echo "export PATH=\$PATH:/root/ros2_ws/src/ardupilot/Tools/autotest" >> /root/.bashrc
+# Layer 10: environment. ros2_sitl_env.sh also adds <prefix>/share of ardupilot_gazebo
+# to GZ_SIM_RESOURCE_PATH and SDF_PATH, without it the package:// includes in the
+# upstream iris model do not resolve on Jazzy (ArduPilot/ardupilot_gazebo#109).
+COPY ros2_sitl_env.sh /root/ros2_sitl_env.sh
+RUN echo "source /root/ros2_sitl_env.sh" >> /root/.bashrc
 WORKDIR /root/ros2_ws
 CMD ["/bin/bash"]
