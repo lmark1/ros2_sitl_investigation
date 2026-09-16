@@ -1,0 +1,4 @@
+# Extra SITL params appended to the iris defaults via launch arg defaults:=...
+# SERIAL1 (tcp 5762) is the mavros link. Default 57600 baud caps the streams at
+# ~25 Hz in SITL, 1500000 gives the requested 50 Hz.
+SERIAL1_BAUD 1500

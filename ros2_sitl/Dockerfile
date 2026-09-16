@@ -77,6 +77,12 @@ RUN cd /root/ros2_ws && . /opt/ros/jazzy/setup.sh \
        --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     2>&1 | tail -n 200
 
+# Layer 9b: mavros2 for step 2 (interface decision), GeographicLib datasets for it.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-mavros ros-jazzy-mavros-extras ros-jazzy-mavros-msgs \
+    && rm -rf /var/lib/apt/lists/* \
+    && /opt/ros/jazzy/lib/mavros/install_geographiclib_datasets.sh
+
 # Layer 10: environment. ros2_sitl_env.sh also adds <prefix>/share of ardupilot_gazebo
 # to GZ_SIM_RESOURCE_PATH and SDF_PATH, without it the package:// includes in the
 # upstream iris model do not resolve on Jazzy (ArduPilot/ardupilot_gazebo#109).
