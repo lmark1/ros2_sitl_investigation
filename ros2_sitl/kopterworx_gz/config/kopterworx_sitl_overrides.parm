@@ -1,0 +1,4 @@
+# Loaded after kopterworx_v432.params for SITL on ArduPilot master.
+# Parachute: the aircraft has one on a relay, SITL has no relay and master refuses to
+# arm ("Chute has no relay", not covered by ARMING_CHECK 0).
+CHUTE_ENABLED 0
