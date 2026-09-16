@@ -47,15 +47,31 @@ class HoverTest(Node):
         f = cli.call_async(req); rclpy.spin_until_future_complete(self, f, timeout_sec=5.0)
         print(f"{what}: {f.result()}"); return f.result()
 
+    def rpy(self):
+        q = self.pose.pose.orientation
+        r = math.atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y))
+        p = math.asin(max(-1.0, min(1.0, 2 * (q.w * q.y - q.z * q.x))))
+        y = math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z))
+        return tuple(math.degrees(v) for v in (r, p, y))
+
     def status(self, t, tag):
+        x = self.pose.pose.position.x if self.pose else float("nan")
+        y = self.pose.pose.position.y if self.pose else float("nan")
+        r, pch, yw = self.rpy() if self.pose else (float("nan"),) * 3
         z = self.pose.pose.position.z if self.pose else float("nan")
         zg = self.odom.pose.pose.position.z if self.odom else float("nan")
+        if self.odom:
+            q = self.odom.pose.pose.orientation
+            rg = math.degrees(math.atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y)))
+            gt = f"gt=({self.odom.pose.pose.position.x:5.2f},{self.odom.pose.pose.position.y:5.2f},{zg:5.2f} r={rg:5.1f})"
+        else:
+            gt = "gt=n/a"
         if self.rcout and len(self.rcout.channels) >= 4:
             pw = self.rcout.channels[:4]; mean = sum(pw) / 4.0
             pwm = f"pwm={list(pw)} mean={mean:.0f} norm={(mean-1000)/1000:.3f}"
         else:
             pwm = "pwm=n/a"
-        print(f"t={t:5.1f}s {tag:8s} z={z:5.2f} z_gz={zg:5.2f} {pwm} mode={self.state.mode} armed={self.state.armed}", flush=True)
+        print(f"t={t:5.1f}s {tag:6s} xyz=({x:5.2f},{y:5.2f},{z:5.2f}) {gt} rpy=({r:5.1f},{pch:5.1f},{yw:6.1f}) {pwm} {self.state.mode} armed={self.state.armed}", flush=True)
 
     def run(self):
         a = self.a

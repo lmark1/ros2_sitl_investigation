@@ -14,7 +14,7 @@ mkdir -p /root/ros2_sitl/logs
 SITL=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params
 GZ=$(ros2 pkg prefix ardupilot_gazebo)/share/ardupilot_gazebo/config
 if [ "$PKG" == "kopterworx_gz" ]; then
-  DEF="$SITL/copter.parm,$SITL/gazebo-iris.parm,$SITL/dds_udp.parm,/root/ros2_sitl/config/sitl_extra.parm${KW_PARMS:+,$KW_PARMS}"
+  DEF="$SITL/copter.parm,$SITL/gazebo-iris.parm,$SITL/dds_udp.parm${KW_PARMS:+,$KW_PARMS},/root/ros2_sitl/config/sitl_extra.parm"
 else
   DEF="$SITL/copter.parm,$GZ/gazebo-iris-gimbal.parm,$SITL/dds_udp.parm,$SITL/dds_use_ns.parm,/root/ros2_sitl/config/sitl_extra.parm"
 fi

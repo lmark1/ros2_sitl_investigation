@@ -60,7 +60,7 @@ def generate_launch_description():
         DeclareLaunchArgument("sim_address", default_value="127.0.0.1"),
         DeclareLaunchArgument("x", default_value="0.0"),
         DeclareLaunchArgument("y", default_value="0.0"),
-        DeclareLaunchArgument("z", default_value="0.3"),
+        DeclareLaunchArgument("z", default_value="0.35"),
         DeclareLaunchArgument("R", default_value="0.0"),
         DeclareLaunchArgument("P", default_value="0.0"),
         DeclareLaunchArgument("Y", default_value="0.0"),
