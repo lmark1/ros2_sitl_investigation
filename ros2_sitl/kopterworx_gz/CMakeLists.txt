@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.5)
+project(kopterworx_gz)
+find_package(ament_cmake REQUIRED)
+install(DIRECTORY models/ DESTINATION share/${PROJECT_NAME}/models)
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
+install(DIRECTORY worlds/ DESTINATION share/${PROJECT_NAME}/worlds)
+# <prefix>/share on both paths so package://kopterworx_gz/... resolves in the gz
+# server (GZ_SIM_RESOURCE_PATH) and in robot_state_publisher's sdformat_urdf (SDF_PATH).
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.sh.in")
+ament_package()

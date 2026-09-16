@@ -3,15 +3,23 @@
 #   window launch : ros2 launch ardupilot_gz_bringup iris_runway.launch.py (+ extra parms)
 #   window mav    : MAVProxy console on udp 14550
 #   window mavros : mavros2 on SITL SERIAL1 (tcp 5762), streams requested at 50 Hz
-# Usage (inside container): /root/ros2_sitl/start_sim.sh [extra launch args]
+# Usage (inside container): /root/ros2_sitl/start_sim.sh [pkg launch_file] [extra launch args]
+#   default: ardupilot_gz_bringup iris_runway.launch.py
+#   e.g.   : /root/ros2_sitl/start_sim.sh kopterworx_gz kopterworx_runway.launch.py
 source /root/ros2_sitl_env.sh
+PKG=ardupilot_gz_bringup; LAUNCH=iris_runway.launch.py
+if [ $# -ge 2 ] && [[ "$2" == *.launch.py ]]; then PKG=$1; LAUNCH=$2; shift 2; fi
 /root/ros2_sitl/kill_sim.sh >/dev/null 2>&1
 mkdir -p /root/ros2_sitl/logs
 SITL=$(ros2 pkg prefix ardupilot_sitl)/share/ardupilot_sitl/config/default_params
 GZ=$(ros2 pkg prefix ardupilot_gazebo)/share/ardupilot_gazebo/config
-DEF="$SITL/copter.parm,$GZ/gazebo-iris-gimbal.parm,$SITL/dds_udp.parm,$SITL/dds_use_ns.parm,/root/ros2_sitl/config/sitl_extra.parm"
-tmux new-session -d -s sim -n launch "bash -c \"source /root/ros2_sitl_env.sh; ros2 launch ardupilot_gz_bringup iris_runway.launch.py rviz:=false defaults:=$DEF $* 2>&1 | tee /root/ros2_sitl/logs/launch_iris.log; exec bash\""
-timeout 150 bash -c "until ros2 topic list 2>/dev/null | grep -q /ap/v1/pose; do sleep 3; done" || { echo "sim did not come up"; exit 1; }
+if [ "$PKG" == "kopterworx_gz" ]; then
+  DEF="$SITL/copter.parm,$SITL/gazebo-iris.parm,$SITL/dds_udp.parm,/root/ros2_sitl/config/sitl_extra.parm${KW_PARMS:+,$KW_PARMS}"
+else
+  DEF="$SITL/copter.parm,$GZ/gazebo-iris-gimbal.parm,$SITL/dds_udp.parm,$SITL/dds_use_ns.parm,/root/ros2_sitl/config/sitl_extra.parm"
+fi
+tmux new-session -d -s sim -n launch "bash -c \"source /root/ros2_sitl_env.sh; ros2 launch $PKG $LAUNCH rviz:=false defaults:=$DEF $* 2>&1 | tee /root/ros2_sitl/logs/launch_iris.log; exec bash\""
+timeout 150 bash -c "until ros2 topic list 2>/dev/null | grep -qE '/ap(/v1)?/pose/filtered'; do sleep 3; done" || { echo "sim did not come up"; exit 1; }
 echo "sim up"
 tmux new-window -t sim -n mav "bash -c \"source /root/ros2_sitl_env.sh; mavproxy.py --master udp:127.0.0.1:14550 --aircraft /root/ros2_sitl/logs/mav 2>&1 | tee /root/ros2_sitl/logs/mavproxy.log; exec bash\""
 tmux new-window -t sim -n mavros "bash -c \"source /root/ros2_sitl_env.sh; ros2 launch mavros apm.launch fcu_url:=tcp://127.0.0.1:5762 2>&1 | tee /root/ros2_sitl/logs/mavros.log; exec bash\""

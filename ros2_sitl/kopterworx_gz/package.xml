@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>kopterworx_gz</name>
+  <version>0.0.1</version>
+  <description>Kopterworx model, world and launch files for Gazebo Harmonic + ArduPilot SITL (ROS 2 port investigation).</description>
+  <maintainer email="lmarkovic1994@gmail.com">Lovro Markovic</maintainer>
+  <license>GPL-3.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>ardupilot_gazebo</exec_depend>
+  <exec_depend>ardupilot_gz_bringup</exec_depend>
+  <exec_depend>ardupilot_gz_gazebo</exec_depend>
+  <exec_depend>ardupilot_sitl</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,110 @@
+diff --git a/src/ArduPilotPlugin.cc b/src/ArduPilotPlugin.cc
+index 8309c37..36378b3 100755
+--- a/src/ArduPilotPlugin.cc
++++ b/src/ArduPilotPlugin.cc
+@@ -19,6 +19,7 @@
+ #include <rapidjson/stringbuffer.h>
+ #include <rapidjson/writer.h>
+ 
++#include <gz/msgs/actuators.pb.h>
+ #include <gz/msgs/imu.pb.h>
+ #include <gz/msgs/laserscan.pb.h>
+ 
+@@ -250,6 +251,17 @@ class gz::sim::systems::ArduPilotPluginPrivate
+   /// \brief Set true if have 32 servo channels
+   public: bool have32Channels{false};
+ 
++  /// \brief Topic for a gz.msgs.Actuators message carrying the ACTUATOR
++  /// channels (index = channel). Empty means disabled. Lets rotor systems such
++  /// as gz::sim::systems::MulticopterMotorModel do the motor dynamics.
++  public: std::string actuatorsTopic;
++
++  /// \brief Publisher for actuatorsTopic
++  public: gz::transport::Node::Publisher actuatorsPub;
++
++  /// \brief True when actuatorsTopic is set
++  public: bool haveActuators{false};
++
+   /// \brief Have we initialized subscription to the IMU data yet?
+   public: bool imuInitialized{false};
+ 
+@@ -520,6 +532,20 @@ void gz::sim::systems::ArduPilotPlugin::Configure(
+     this->dataPtr->have32Channels =
+     sdfClone->Get("have_32_channels", false).first;
+ 
++    // optional gz.msgs.Actuators output for ACTUATOR type control channels
++    if (sdfClone->HasElement("actuators_topic"))
++    {
++      this->dataPtr->actuatorsTopic =
++          sdfClone->Get<std::string>("actuators_topic");
++      this->dataPtr->actuatorsPub =
++          this->dataPtr->node.Advertise<gz::msgs::Actuators>(
++              this->dataPtr->actuatorsTopic);
++      this->dataPtr->haveActuators = true;
++      gzmsg << "[" << this->dataPtr->modelName << "] "
++            << "Publishing gz.msgs.Actuators on ["
++            << this->dataPtr->actuatorsTopic << "]\n";
++    }
++
+   // Add the signal handler
+   this->dataPtr->sigHandler.AddCallback(
+       std::bind(
+@@ -588,12 +614,13 @@ void gz::sim::systems::ArduPilotPlugin::LoadControlChannels(
+     if (control.type != "VELOCITY" &&
+         control.type != "POSITION" &&
+         control.type != "EFFORT" &&
+-        control.type != "COMMAND")
++        control.type != "COMMAND" &&
++        control.type != "ACTUATOR")
+     {
+       gzwarn << "[" << this->dataPtr->modelName << "] "
+              << "Control type [" << control.type
+              << "] not recognized, must be one of"
+-             << "VELOCITY, POSITION, EFFORT, COMMAND."
++             << "VELOCITY, POSITION, EFFORT, COMMAND, ACTUATOR."
+              << " default to VELOCITY.\n";
+       control.type = "VELOCITY";
+     }
+@@ -1304,9 +1331,30 @@ void gz::sim::systems::ArduPilotPlugin::ApplyMotorForces(
+     const double _dt,
+     gz::sim::EntityComponentManager &_ecm)
+ {
++  // ACTUATOR channels are collected into one gz.msgs.Actuators message
++  gz::msgs::Actuators actuatorsMsg;
++  bool haveActuatorCmd = false;
++
+   // update velocity PID for controls and apply force to joint
+   for (size_t i = 0; i < this->dataPtr->controls.size(); ++i)
+   {
++    if (this->dataPtr->controls[i].type == "ACTUATOR")
++    {
++      if (this->dataPtr->haveActuators)
++      {
++        const int idx = this->dataPtr->controls[i].channel;
++        while (actuatorsMsg.velocity_size() <= idx)
++        {
++          actuatorsMsg.add_velocity(0.0);
++        }
++        actuatorsMsg.set_velocity(idx,
++            this->dataPtr->controls[i].outputReady ?
++            this->dataPtr->controls[i].cmd : 0.0);
++        haveActuatorCmd = true;
++      }
++      continue;
++    }
++
+     // skip servo output while not ready
+     if (!this->dataPtr->controls[i].outputReady)
+     {
+@@ -1413,6 +1461,11 @@ void gz::sim::systems::ArduPilotPlugin::ApplyMotorForces(
+       }
+     }
+   }
++
++  if (haveActuatorCmd)
++  {
++    this->dataPtr->actuatorsPub.Publish(actuatorsMsg);
++  }
+ }
+ 
+ /////////////////////////////////////////////////
