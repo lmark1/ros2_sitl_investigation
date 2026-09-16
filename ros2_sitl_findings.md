@@ -320,10 +320,52 @@ motor_speed). Worth proposing upstream, it does not change existing behaviour.
   cloned repos, so the lidar uses a VLP-16 like +-15 deg, 16 rings. Adjust in
   `gen_model.py` (`--lidar` to enable, off by default like the classic launch).
 
-## Step 4: headless timing
+## Step 4: headless timing (2026-09-16)
 
-Not started.
+Server only, no GUI: `start_sim.sh kopterworx_gz kopterworx_runway.launch.py
+use_gz_sim_gui:=false headless_rendering:=true` (adds `--headless-rendering`, EGL, no X
+needed). Cycle = `scripts/cycle_test.py`: GUIDED, arm, takeoff 3 m, 5 s hover, LAND,
+wait for disarm. Wall clock vs sim clock (`/clock`) over the whole cycle. Kopterworx
+with `kopterworx_v432.params`, this laptop (24 threads, RTX 4070 Laptop).
+
+| config | container | RTF (gz stats) | cycle wall | cycle sim | sim/wall | camera image / points / lidar Hz (wall) |
+|---|---|---|---|---|---|---|
+| A: no rendering sensors, headless | GPU | 1.00 | 19.6 s | 19.6 s | 1.00 | - |
+| B: camera + lidar, headless EGL on the GPU | GPU | 1.00 | 20.7 s | 19.6 s | 0.94 | 29.5 / 20.7 / 9.7 |
+| C: camera + lidar, headless, **no GPU** (Mesa llvmpipe) | `docker_run.sh --nogpu` | 1.00 | 25.5 s | 18.1 s | 0.71 | 11.9 / 9.2 / 7.5 |
+
+- Phases in A: armed after 0.6 s, at 3 m after 5.8 s, disarmed 8.8 s after LAND.
+- With the GUI on, the same machine gave RTF 0.46 (step 2, iris) to 1.0 (step 3.5).
+  Headless is at 1.0 for A and B. RTF 1.0 is Gazebo's real time target
+  (`<real_time_factor>1.0</real_time_factor>` in runway.sdf), SITL runs in lockstep at
+  speedup 1 (fixed in `robot.launch.py`), so faster than real time was not measured.
+  That is the next lever for CI if 20 s per flight is too slow.
+- C is the CI case. It needs a container without `/dev/dri`: with `--privileged` the
+  host's NVIDIA device is visible, Mesa tries it and Ogre2 dies with "OpenGL 3.3 is
+  not supported" / segfault. On the GPU container `LIBGL_ALWAYS_SOFTWARE=1` is refused
+  by Mesa ("Not allowed to force software rendering when API explicitly selects a
+  hardware device") and Ogre2 segfaults. `docker_run.sh --nogpu` drops `--gpus`,
+  `--privileged` and X; then `EXTRA_ENV="LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=3.3"`
+  for start_sim.sh. The gz server took 6.4 cores in C, so a 2 core CI runner will be
+  well below 0.71.
+- Sensor rates are rendering bound: image 29.5 Hz of 30 on the GPU, 11.9 Hz on
+  llvmpipe. The lidar at 10 Hz is close in both.
+- Suggested CI structure from these numbers: flight tests without rendering sensors
+  (config A: 20 s per cycle, RTF 1.0 on any CPU), a separate sensor smoke test that
+  only checks the camera and lidar topics exist and publish (no timing assertions),
+  and a GPU runner only if image rate matters.
 
 ## Patches and failures
 
-(none yet)
+- `patches/ardupilot_gazebo_actuators.patch`: ArduPilotPlugin ACTUATOR channels +
+  `<actuators_topic>` (gz.msgs.Actuators for MulticopterMotorModel). No upstream issue.
+- `ros2_sitl_env.sh`: `<prefix>/share` of ardupilot_gazebo on `GZ_SIM_RESOURCE_PATH`
+  and `SDF_PATH` (ArduPilot/ardupilot_gazebo#109, ArduPilot/ardupilot_gz#96).
+- `kopterworx_sitl_overrides.parm`: CHUTE_ENABLED 0, AHRS_TRIM_X/Y 0 for SITL.
+- mavros2 `thrust_scaling` set at runtime (nan from apm_config.yaml on
+  ros-jazzy-mavros 2.15.1), see step 2.
+- Failed and not pursued: MAVProxy `reboot` of SITL in this launch (crash),
+  `set_stream_rate` through the MAVProxy udp forward (stays 2 Hz), software rendering
+  inside the GPU container (Mesa refuses), iris on the motor model with default gains
+  (roll rate limit cycle).
+
