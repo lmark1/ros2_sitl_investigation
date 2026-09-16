@@ -235,25 +235,6 @@
     </link>
     <joint name="camera_joint" type="fixed"><parent>base_link</parent><child>camera_link</child></joint>
 
-    <link name="lidar_link">
-      <pose>0.08 0 -0.1578 -3.141592653589793 0.1323284641020683 0</pose>
-      <inertial><mass>1e-5</mass><inertia><ixx>1e-12</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1e-12</iyy><iyz>0</iyz><izz>1e-12</izz></inertia></inertial>
-      <sensor name="lidar" type="gpu_lidar">
-        <gz_frame_id>lidar_link</gz_frame_id>
-        <topic>lidar</topic>
-        <update_rate>10</update_rate>
-        <always_on>1</always_on>
-        <lidar>
-          <scan>
-            <horizontal><samples>440</samples><resolution>1</resolution><min_angle>-3.141592653589793</min_angle><max_angle>3.141592653589793</max_angle></horizontal>
-            <vertical><samples>16</samples><resolution>1</resolution><min_angle>-0.2617993877991494</min_angle><max_angle>0.2617993877991494</max_angle></vertical>
-          </scan>
-          <range><min>1.0</min><max>50.0</max><resolution>0.01</resolution></range>
-          <noise><type>gaussian</type><mean>0.0</mean><stddev>0.008</stddev></noise>
-        </lidar>
-      </sensor>
-    </link>
-    <joint name="lidar_joint" type="fixed"><parent>base_link</parent><child>lidar_link</child></joint>
 
     <!-- ground truth odometry, bridged to /odometry (nav_msgs/Odometry) -->
     <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">

@@ -10,8 +10,15 @@
 #        ./docker_run.sh -d     create and start detached, then use ./docker_run.sh to attach
 set -e
 cd "$(dirname "$0")"
-DETACHED=""
-if [ "$1" == "-d" ]; then DETACHED="-d"; shift; fi
+#        ./docker_run.sh --nogpu [-d]   same image without GPU and X, named ros2_sitl_nogpu (CI case)
+PRIV="--privileged"; DETACHED=""; NAME=ros2_sitl; GPU_ARGS="--gpus all --env NVIDIA_DRIVER_CAPABILITIES=all"
+X_ARGS='--volume /tmp/.X11-unix:/tmp/.X11-unix:rw --volume /tmp/.docker.xauth:/tmp/.docker.xauth:rw --env XAUTHORITY=/tmp/.docker.xauth'
+for a in "$@"; do
+  case "$a" in
+    -d) DETACHED="-d";;
+    --nogpu) NAME=ros2_sitl_nogpu; GPU_ARGS=""; X_ARGS=""; PRIV="";;
+  esac
+done
 
 # Stable name for the agent socket, the real path changes between logins.
 mkdir -p ~/.ssh
@@ -23,19 +30,19 @@ XAUTH=/tmp/.docker.xauth
 touch $XAUTH
 xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge - 2>/dev/null || true
 
-if docker ps -a --format '{{.Names}}' | grep -qx ros2_sitl; then
-    if docker ps --format '{{.Names}}' | grep -qx ros2_sitl; then
-        exec docker exec -it ros2_sitl bash
+if docker ps -a --format '{{.Names}}' | grep -qx $NAME; then
+    if docker ps --format '{{.Names}}' | grep -qx $NAME; then
+        exec docker exec -it $NAME bash
     fi
-    exec docker start -ai ros2_sitl
+    exec docker start -ai $NAME
 fi
 
-exec docker run -it $DETACHED --network host --privileged \
-  --gpus all --env NVIDIA_DRIVER_CAPABILITIES=all \
+# shellcheck disable=SC2086
+exec docker run -it $DETACHED --network host $PRIV \
+  $GPU_ARGS $X_ARGS \
   --volume ~/.ssh/ssh_auth_sock:/ssh-agent --env SSH_AUTH_SOCK=/ssh-agent \
-  --volume $XSOCK:$XSOCK:rw --volume $XAUTH:$XAUTH:rw \
-  --env XAUTHORITY=$XAUTH --env DISPLAY="$DISPLAY" --env TERM=xterm-256color \
+  --env DISPLAY="$DISPLAY" --env TERM=xterm-256color \
   --volume "$(pwd):/root/ros2_sitl" \
   --env GZ_VERSION=harmonic \
-  --name ros2_sitl ros2_sitl:jazzy "$@"
+  --name $NAME ros2_sitl:jazzy
 # When detached the container idles in bash; attach with ./docker_run.sh

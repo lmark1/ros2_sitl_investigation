@@ -6,6 +6,7 @@
 # Usage (inside container): /root/ros2_sitl/start_sim.sh [pkg launch_file] [extra launch args]
 #   default: ardupilot_gz_bringup iris_runway.launch.py
 #   e.g.   : /root/ros2_sitl/start_sim.sh kopterworx_gz kopterworx_runway.launch.py
+#   env KW_PARMS=a.parm,b.parm (extra SITL defaults), EXTRA_ENV="LIBGL_ALWAYS_SOFTWARE=1" (env for the launch)
 source /root/ros2_sitl_env.sh
 PKG=ardupilot_gz_bringup; LAUNCH=iris_runway.launch.py
 if [ $# -ge 2 ] && [[ "$2" == *.launch.py ]]; then PKG=$1; LAUNCH=$2; shift 2; fi
@@ -18,7 +19,7 @@ if [ "$PKG" == "kopterworx_gz" ]; then
 else
   DEF="$SITL/copter.parm,$GZ/gazebo-iris-gimbal.parm,$SITL/dds_udp.parm,$SITL/dds_use_ns.parm,/root/ros2_sitl/config/sitl_extra.parm"
 fi
-tmux new-session -d -s sim -n launch "bash -c \"source /root/ros2_sitl_env.sh; ros2 launch $PKG $LAUNCH rviz:=false defaults:=$DEF $* 2>&1 | tee /root/ros2_sitl/logs/launch_iris.log; exec bash\""
+tmux new-session -d -s sim -n launch "bash -c \"source /root/ros2_sitl_env.sh; ${EXTRA_ENV:+env $EXTRA_ENV} ros2 launch $PKG $LAUNCH rviz:=false defaults:=$DEF $* 2>&1 | tee /root/ros2_sitl/logs/launch_iris.log; exec bash\""
 timeout 150 bash -c "until ros2 topic list 2>/dev/null | grep -qE '/ap(/v1)?/pose/filtered'; do sleep 3; done" || { echo "sim did not come up"; exit 1; }
 echo "sim up"
 tmux new-window -t sim -n mav "bash -c \"source /root/ros2_sitl_env.sh; mavproxy.py --master udp:127.0.0.1:14550 --aircraft /root/ros2_sitl/logs/mav 2>&1 | tee /root/ros2_sitl/logs/mavproxy.log; exec bash\""
