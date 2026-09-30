@@ -6,6 +6,8 @@ setup. Everything runs in one docker image, nothing is installed on the host.
 - `ros2_sitl_investigation.md`: the plan.
 - `ros2_sitl_findings.md`: what was found, step by step (baseline commits, mavros2 vs
   AP_DDS, the kopterworx port, headless timing, every patch and failure).
+- `ros2_integration_plan.md`: how to move this into `uav_ros_simulation` and
+  `uav_ros_stack` for real (branches, milestones, per-package porting notes, risks).
 - `ros2_sitl/`: the docker setup, the kopterworx package, helper scripts.
 
 ## Prerequisites (host)
