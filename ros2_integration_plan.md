@@ -107,7 +107,7 @@ launch and the build system differ too much for shared sources to stay readable.
 | `patches/ardupilot_gazebo_actuators.patch` | commit on `ardupilot_gazebo@larics-jazzy`; also propose upstream |
 | `ros2_sitl_env.sh` resource path workaround | one line in the ardupilot_gazebo env hooks (`share` on `GZ_SIM_RESOURCE_PATH` and `SDF_PATH`); also propose upstream |
 | `kopterworx_gz/scripts/gen_model.py` (generated SDF) | **dropped**. Its numbers already come from `kopterworx_base.urdf.xacro`; the xacro stays the source, only the plugin blocks in `util/multirotor_base.urdf.xacro` change |
-| `kopterworx_gz/launch`, bridge yaml | `ardupilot_gazebo/launch/{kopterworx,spawn_kopterworx}.launch` equivalents and `config/` |
+| `kopterworx_gz/launch` (Python), bridge yaml | rewritten as XML: `ardupilot_gazebo/launch/{kopterworx,spawn_kopterworx}.launch.xml`; bridge yaml to `config/` |
 | `kopterworx_sitl_overrides.parm` | `ardupilot_gazebo/config/sitl_overrides.parm`, appended by `run_copter.sh` |
 | `start_sim.sh`, `kill_sim.sh`, `dex.sh` | not needed: tmuxinator sessions and `run_docker.sh` |
 | `scripts/hover_test.py`, `cycle_test.py` | sim-only smoke test in uav_ros_simulation CI (launch_testing), runs before the stack test |
@@ -145,7 +145,7 @@ Exit: hover and attitude tests pass on `Larics-4.6.3` from a xacro-spawned kopte
   Kopterworx default configuration first: body, 4 rotors, IMU, odometry, front depth
   camera.
 - Launch files, same names and arguments: `sim_vehicle`, `mavros`, `mavros_node`,
-  `kopterworx`, `spawn_kopterworx`, `empty_world`. XML launch frontend (section 7.3).
+  `kopterworx`, `spawn_kopterworx`, `empty_world`. All XML, no Python (section 7.3).
 - `run_copter.sh`: add `--model JSON`, append the SITL overrides. `fdm_port_out`
   disappears (JSON uses one port, 9002 + 10 per instance).
 - `shell_scripts.sh` helpers on the ROS 2 CLI (`waitForRos`, `waitForSimulation` on
@@ -174,7 +174,8 @@ Exit: the onboarding flight works on Jazzy: `./start.sh`, automatic takeoff to 2
 
 ### M3. Acceptance test, CI, images (1 to 2 weeks)
 - `uav_ros_tests`: the same scenario (3 cycles of takeoff to 2 m, random tracker pose,
-  land; 0.3 m tolerances) as `launch_testing` + gtest.
+  land; 0.3 m tolerances) as `launch_testing` + gtest. Its test description is the only
+  Python launch file in the port.
 - CI in both repos on the jazzy branches: build, SITL build, smoke test, integration
   test, headless without rendering sensors. CD: `yonx/uav_ros_stack:noble-bin-<tag>`,
   `yonx/uav_ros_simulation:noble-bin-<tag>`, source images `:noble`, `:noble-nogpu`.
@@ -267,12 +268,40 @@ Behavioural differences to handle deliberately, not mechanically:
   managers call mavros services from timers and callbacks (32 clients in control),
   so they need callback groups and a multi threaded executor.
 
-### 7.3 Launch files (76)
-Use the ROS 2 **XML** launch frontend, not Python. The files translate almost line by
-line and stay readable for the team: `$(find pkg)` -> `$(find-pkg-share pkg)`,
-`<group ns>` -> `<group><push-ros-namespace>`, `<rosparam command="load">` ->
-`<param from=...>`, `pkg="nodelet"` -> `<load_composable_node>`, `$(env UAV_NAMESPACE)`
-unchanged. Python only where logic is needed (xacro processing and spawn).
+### 7.3 Launch files (76): XML, no Python
+All our launch files stay XML, using the ROS 2 XML launch frontend (`*.launch.xml`).
+mavros2 ships its own launch files the same way. They are not the literal ROS 1 files,
+but each translates nearly line by line:
+
+| ROS 1 | ROS 2 XML |
+|---|---|
+| `$(arg x)` | `$(var x)` |
+| `$(find pkg)` | `$(find-pkg-share pkg)` |
+| `<node pkg= type= ns=>` | `<node pkg= exec= namespace=>` |
+| `<group ns="x">` | `<group><push-ros-namespace namespace="x"/>` ... |
+| `<rosparam command="load" file=>` | `<param from=>` |
+| `<param name="robot_description" command="xacro ...">` | `<param name="robot_description" value="$(command 'xacro ...')"/>` |
+| `pkg="nodelet"` manager / load | `<node_container>` / `<load_composable_node>` |
+| `rosparam set use_sim_time true` (in the sessions) | `<set_use_sim_time value="true"/>` once per launch file |
+| scripts as nodes (`run_copter.sh`) | `<executable cmd=...>` |
+| `<arg>`, `<include>`, `<remap>`, `$(env UAV_NAMESPACE)`, `$(eval ...)`, `if`/`unless`, `launch-prefix` | unchanged |
+
+Checked against the Jazzy frontend in the container (2026-09-30): it exposes `arg`,
+`let`, `include`, `group`, `node`, `executable`, `node_container`,
+`load_composable_node`, `push-ros-namespace`, `set_use_sim_time`, `set_parameter`,
+`set_remap`, `set_env`, `timer`, and the substitutions `var`, `env`, `find-pkg-share`,
+`command`, `eval`, `if`, `equals`, `not`, `and`, `or`, `anon`, `file-content`. That
+covers everything the 76 files use, including xacro processing, the spawn
+(`<node pkg="ros_gz_sim" exec="create" args="-topic robot_description -name $(var name) ..."/>`)
+and the per-vehicle port arithmetic (`$(eval '9002 + 10 * instance')`). The Python
+spawn launch of the proof of concept is not carried over.
+
+Python remains in exactly two places:
+- **The integration test.** `launch_testing` only accepts a Python test description.
+  One file of about 30 lines in `uav_ros_tests` that includes the XML launch and
+  replaces `kopterworx_base_rostest.launch`.
+- **Upstream files we include but do not own**, such as `ros_gz_sim/gz_sim.launch.py`.
+  An XML `<include>` can include a Python launch file, so nothing of ours changes.
 
 ### 7.4 Worlds
 gz worlds need the system plugins and spherical coordinates added, and Ogre 1 material
