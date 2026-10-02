@@ -6,3 +6,7 @@ CHUTE_ENABLED 0
 # EKF report ~1.4 deg roll in a level sim. Zero them for SITL.
 AHRS_TRIM_X 0
 AHRS_TRIM_Y 0
+# The aircraft has three IMUs, SITL has two. An ID configured for a gyro that does not
+# exist fails the arming check with "Gyros not calibrated". It shows on the first
+# start with a fresh SITL storage directory (logs/sitl_kopterworx/eeprom.bin).
+INS_GYR3_ID 0

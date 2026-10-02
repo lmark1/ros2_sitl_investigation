@@ -24,13 +24,14 @@ windows:
         #   mavproxy    in this pane, connects to tcp 5760, feeds RC to udp 5501,
         #               forwards MAVLink to udp 14550. Type commands here.
         # Parameter files are applied in order, later files win:
-        #   copter.parm, gazebo-iris.parm   SITL baseline (simulated IMU counts as calibrated)
+        #   copter.parm, gazebo-iris.parm   SITL baseline. sim_vehicle.py 4.4.3 adds these two
+        #                                   itself for frame gazebo-iris (so Noetic has them);
+        #                                   master no longer does when --model is JSON, so
+        #                                   they are listed here to keep the same base.
         #   kopterworx_v432.params          the aircraft's own parameters
-        #   kopterworx_sitl_overrides.parm  what SITL needs different (parachute off, trims)
+        #   kopterworx_sitl_overrides.parm  what SITL needs different: parachute off, trims
+        #                                   zero, third IMU id cleared (see that file)
         #   sitl_no_dds.parm                this image's binary has AP_DDS built in, turn it off
-        # ArduPilot master's sim_vehicle.py no longer adds the two baseline files itself
-        # when --model is JSON, so they are listed here. Without them arming fails with
-        # "Gyros not calibrated".
         - sim_vehicle:
             - mkdir -p /root/ros2_sitl/logs/sitl_kopterworx && cd /root/ros2_sitl/logs/sitl_kopterworx
             - export SITL_RITW_TERMINAL="tmux new-window -d -n ardupilot1"

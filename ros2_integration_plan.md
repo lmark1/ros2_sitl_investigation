@@ -10,6 +10,26 @@ as cloned on 2026-09-16 (uav_ros_simulation e0a890d, uav_ros_stack 3982760, lock
 gitman revisions), and probes of the firmware fork run on 2026-09-30.
 Not surveyed: `uav_ros_drivers` (gitman group `drivers`, not installed in the image).
 
+## Update 2026-10-02: decisions taken since this plan was written
+
+These supersede the text below where they differ.
+
+- **Plugin repo**: `avyonx/ardupilot_gazebo`, branch `ros2` (fork of upstream), not
+  `larics/ardupilot_gazebo@larics-jazzy`. It carries the upstream plugin plus the
+  Actuators patch and the env hook fix, nothing else.
+- **New package `ardupilot_gazebo_description`, inside uav_ros_simulation**: everything
+  that is not the upstream plugin lives here: the kopterworx xacro and meshes, `util`
+  macros, worlds, launch files, `run_copter.sh` and the shell helpers, mavros and bridge
+  config, parameter files, test scripts. The PoC package `kopterworx_gz` is reference
+  material only and is **not** carried over as a package. Consequence for "keep names":
+  launch files keep their names and arguments, but are called as
+  `ros2 launch ardupilot_gazebo_description <file>`.
+- **Bringup** is tmuxinator sessions (`ros2_sitl/startup/`, see its README). Nothing from
+  `ardupilot_gz`, SITL_Models, micro-ROS-Agent or DDS-Gen is used.
+- **Firmware**: `Larics-4.6.3`. The aircraft parameter file is used unchanged, with a
+  small SITL override file (third IMU id cleared, parachute off, trims zero).
+- **Jira**: the simulation part is USOIT-11 with subtasks USOIT-21 to 35.
+
 ## 1. Target
 
 | | today | after |
@@ -88,7 +108,8 @@ Noetic stays untouched on `main` / `larics-master`. Every repo gets a long-lived
 |---|---|---|
 | larics/uav_ros_simulation | `jazzy` | `main`; gitman `simulation` group loses rotors_simulator and mav_comm, `ardupilot` -> `Larics-4.6.3` |
 | larics/uav_ros_stack | `jazzy` | `main` |
-| larics/ardupilot_gazebo | `larics-jazzy` | **upstream** ArduPilot/ardupilot_gazebo `ros2` branch + Actuators patch + resource-path hook fix, then the larics models, launch, scripts, config copied in from `larics-master`. Package name stays `ardupilot_gazebo`, so `ros2 launch ardupilot_gazebo kopterworx.launch.xml` mirrors today. |
+| avyonx/ardupilot_gazebo | `ros2` | fork of **upstream** ArduPilot/ardupilot_gazebo `ros2`: plugin + Actuators patch + resource-path hook fix. No larics content. |
+| uav_ros_simulation, package `ardupilot_gazebo_description` | on `jazzy` | new package tracked in the repo: the larics models, launch, scripts, config from the Classic fork's `larics-master`, ported. `ros2 launch ardupilot_gazebo_description kopterworx.launch.xml`. |
 | larics/ardupilot | `Larics-4.6.3` | exists |
 | larics/larics_gazebo_worlds | `jazzy` | `master` |
 | uav_ros_msgs, uav_ros_lib, uav_ros_control, uav_ros_tracker, uav_ros_general, uav_ros_tests, topp_ros | `jazzy` each | `main`/`master`. For msgs and lib, port from main and use the old `ros2`/`humble-dev` branches as reference for solved problems, not as the base (they are 35 and 54 commits behind). |
