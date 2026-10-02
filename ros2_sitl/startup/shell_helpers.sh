@@ -27,6 +27,15 @@ waitForOdometry() {
   until timeout 5 ros2 topic echo /mavros/local_position/odom --once >/dev/null 2>&1; do sleep 2; done
 }
 
+# The autopilot's own pre-arm checks pass: bit 28 (MAV_SYS_STATUS_PREARM_CHECK) of the
+# health mask in SYS_STATUS. For the first 10 to 30 s after boot ArduPilot refuses to
+# arm ("Accels inconsistent", "GPS still configuring"); this waits that out.
+waitForArmable() {
+  local h
+  until h=$(timeout 5 ros2 topic echo /mavros/sys_status --once 2>/dev/null | awk '/sensors_health/{print $2}') \
+        && [ -n "$h" ] && [ $(( (h >> 28) & 1 )) -eq 1 ]; do sleep 2; done
+}
+
 # Print a topic rate in one line.   rate /mavros/local_position/pose
 rate() {
   echo "$1: $(timeout 8 ros2 topic hz "$1" --window 100 2>&1 | grep -oE 'average rate: [0-9.]+' | tail -1)"

@@ -15,6 +15,7 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 from mavros_msgs.msg import RCOut, State
 from mavros_msgs.srv import CommandBool, CommandTOL, SetMode
+from arming import arm_with_retry
 
 
 class HoverTest(Node):
@@ -79,8 +80,7 @@ class HoverTest(Node):
         self.wait(lambda: self.pose is not None, 30, "pose")
         self.call(self.mode_cli, SetMode.Request(custom_mode="GUIDED"), "set_mode GUIDED")
         self.wait(lambda: self.state.mode == "GUIDED", 5, "GUIDED")
-        self.call(self.arm_cli, CommandBool.Request(value=True), "arm")
-        if not self.wait(lambda: self.state.armed, 5, "armed"): return 1
+        if not arm_with_retry(self, self.arm_cli, lambda: self.state.armed): return 1
         self.spin(2.0)
         self.call(self.tol_cli, CommandTOL.Request(altitude=float(a.alt)), f"takeoff {a.alt}")
         t0 = time.time(); nxt = 0.0; hover_norm = []

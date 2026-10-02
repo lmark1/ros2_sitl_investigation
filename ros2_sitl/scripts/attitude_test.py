@@ -20,6 +20,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import AttitudeTarget, OverrideRCIn, State
 from mavros_msgs.srv import CommandBool, SetMode
+from arming import arm_with_retry
 
 
 def quaternion_from_euler(roll, pitch, yaw):
@@ -94,8 +95,7 @@ class AttitudeTest(Node):
             print(f"publishing RC override ch3={a.rc_throttle}")
         self.call(self.mode_cli, SetMode.Request(custom_mode="GUIDED_NOGPS"), "set_mode GUIDED_NOGPS")
         self.wait(lambda: self.state.mode == "GUIDED_NOGPS", 5, "mode GUIDED_NOGPS")
-        self.call(self.arm_cli, CommandBool.Request(value=True), "arm")
-        self.wait(lambda: self.state.armed, 5, "armed")
+        if not arm_with_retry(self, self.arm_cli, lambda: self.state.armed): return 1
 
         yaw0 = self.yaw()
         phases = [  # (name, duration s, roll deg, pitch deg, yaw_rate rad/s, thrust)

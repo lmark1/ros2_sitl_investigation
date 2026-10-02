@@ -85,7 +85,8 @@ windows:
             - waitForModel kopterworx && echo "[ok] model spawned"
             - waitForRos && echo "[ok] bridge delivers /clock"
             - waitForMavros && echo "[ok] mavros connected to SITL"
-            - waitForOdometry && echo "[ok] EKF has a position, ready to fly"
+            - waitForOdometry && echo "[ok] EKF publishes a position"
+            - waitForArmable && echo "[ok] autopilot pre-arm checks pass, ready to fly"
             - rate /odometry; rate /mavros/global_position/local
         - test:
             - >-

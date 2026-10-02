@@ -13,6 +13,7 @@ from geometry_msgs.msg import PoseStamped
 from rosgraph_msgs.msg import Clock
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, CommandTOL, SetMode
+from arming import arm_with_retry
 
 
 class Cycle(Node):
@@ -47,8 +48,7 @@ class Cycle(Node):
         def mark(name): marks.append((name, time.time(), self.sim())); print(f"[{name}] wall={marks[-1][1]-marks[0][1]:6.1f}s sim={marks[-1][2]-marks[0][2]:6.1f}s", flush=True)
         mark("start")
         self.call(self.mode_cli, SetMode.Request(custom_mode="GUIDED"), "GUIDED")
-        r = self.call(self.arm_cli, CommandBool.Request(value=True), "arm")
-        if not (r and r.success) or not self.wait(lambda: self.state.armed, 10, "armed"): return 1
+        if not arm_with_retry(self, self.arm_cli, lambda: self.state.armed): return 1
         mark("armed")
         self.call(self.tol_cli, CommandTOL.Request(altitude=float(a.alt)), f"takeoff {a.alt}")
         if not self.wait(lambda: self.pose.pose.position.z > a.alt - 0.2, 60, "altitude"): return 1

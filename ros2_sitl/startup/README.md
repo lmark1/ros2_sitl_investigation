@@ -20,10 +20,14 @@ cd /root/ros2_sitl/startup/kopterworx_flat && ./start.sh
 `GUI=false ./start.sh` skips the Gazebo window, `HEADLESS=true ./start.sh` renders the
 camera with EGL when there is no X display, `./start.sh --no-attach` starts in the
 background (`tmux attach -t kopterworx_flat`). `/root/ros2_sitl/kill_sim.sh` stops
-everything. One session at a time, they share the ports.
+everything. One session at a time, they share the ports. In the container without a GPU
+(`./docker_run.sh --nogpu`) add `LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=3.3
+GUI=false HEADLESS=true` in front of `./start.sh`.
 
-All three were run on 2026-10-02 and hover (kopterworx 3 m at 0.452 of the PWM range,
-iris 3 m at 0.561), with mavros at 50 Hz.
+All three were run on 2026-10-02 from an image built from a fresh clone, and hover
+(kopterworx 3 m at 0.452 of the PWM range, iris 3 m at 0.561) with mavros at 50 Hz.
+`kopterworx_flat` was also run in the container without a GPU. From `./start.sh` to
+"ready to fly" takes about 30 s.
 
 ## The picture
 
@@ -99,8 +103,9 @@ Window `gazebo`:
 | `spawn` | `ros2 run ros_gz_sim create -world runway -name kopterworx -file model.sdf -z 0.35` | Inserts the vehicle into the running world. The model brings the ArduPilot plugin and the motor models with it. Exits when done. | server's create service | `spawn_model` in `spawn_kopterworx.launch` |
 | `bridge` | `ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=...` | Gazebo topics are not ROS topics. This copies the ones we need: `/clock`, `/odometry`, `/camera/*`, `/joint_states`. | server (gz), ROS 2 | not needed on Classic, plugins published ROS topics directly |
 
-Window `fly`: a status pane that waits for each link in turn and prints `[ok]` lines, and
-a pane with the test commands.
+Window `fly`: a status pane that waits for each link in turn and prints `[ok]` lines
+(model spawned, bridge, mavros connected, EKF position, autopilot armable), and a pane
+with the test commands.
 
 ## Start order and how to check each link
 
@@ -123,6 +128,7 @@ Other failures seen while building this, with their cause:
 | Symptom | Cause |
 |---|---|
 | Arming refused, "Gyros not calibrated" | SITL started without `copter.parm`. ArduPilot master's `sim_vehicle.py` no longer adds the frame's default files when `--model` is JSON, so the sessions list them. Check on `Larics-4.6.3` whether it still adds them itself, as 4.4.3 did. |
+| Arming refused in the first 10 to 30 s, "Accels inconsistent" or "GPS 1 still configuring" | normal after boot while the simulated IMUs and GPS settle. The `status` pane waits for it (`waitForArmable`, the pre-arm bit of `/mavros/sys_status`), and the test scripts retry arming and print the reason. |
 | Arming refused, "Chute has no relay" | the aircraft parameter file enables a parachute on a relay, SITL has no relay: `kopterworx_sitl_overrides.parm` |
 | Vehicle armed, AttitudeTarget sent, never leaves the ground | `thrust_scaling` unset in mavros, see pane `mavros_setup` |
 | AttitudeTarget with attitude + yaw rate is ignored | stock ArduPilot rejects it, the larics yaw-rate patch is needed (`Larics-4.6.3` has it, the master binary in this image does not) |

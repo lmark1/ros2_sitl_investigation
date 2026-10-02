@@ -28,7 +28,8 @@ What the image contains (see the Dockerfile, one layer per step):
 Jazzy desktop-full with Gazebo Harmonic, ArduPilot build tools, Micro-XRCE-DDS-Gen,
 the two private repos plus their gitman deps (reference only), a ROS 2 workspace built
 from `ros2_gz.jazzy.repos` (ardupilot master, ardupilot_gazebo ros2, ardupilot_gz,
-SITL_Models, micro-ROS agent), mavros2, the ArduPilotPlugin patch and `kopterworx_gz`.
+SITL_Models, micro-ROS agent, all pinned to the commits that were tested), mavros2, the
+ArduPilotPlugin patch and `kopterworx_gz`.
 
 ## Run
 
@@ -60,6 +61,9 @@ GUI=false ./start.sh          # no Gazebo window
 HEADLESS=true ./start.sh      # render camera/lidar with EGL, no X display needed
 ./start.sh --no-attach        # background, then: tmux attach -t kopterworx_flat
 /root/ros2_sitl/kill_sim.sh   # stop everything
+
+# container without a GPU (started on the host with ./docker_run.sh --nogpu)
+LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=3.3 GUI=false HEADLESS=true ./start.sh
 ```
 
 Windows of the flat sessions:
