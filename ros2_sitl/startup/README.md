@@ -6,7 +6,7 @@ hidden inside a launch file.
 
 | Session | What it is | Use it to |
 |---|---|---|
-| `kopterworx_flat/` | Kopterworx on the motor-model path, SITL through `sim_vehicle.py`, mavros. No upstream launch, no AP_DDS. | **Copy this into uav_ros_simulation.** |
+| `kopterworx_flat/` | Kopterworx on the motor-model path, SITL through `sim_vehicle.py`, mavros. No upstream launch, no AP_DDS, nothing from the `ardupilot_gz` packages. | **Copy this into uav_ros_simulation.** |
 | `iris_flat/` | The upstream iris with exactly the same panes. | See that the wiring is model independent. `diff` the two session files: only model, parameters and bridge config differ. |
 | `iris_upstream/` | The upstream way: one `ros2 launch` starts everything, including AP_DDS. | Understand what the upstream launch hides. Not the target. |
 
@@ -138,6 +138,16 @@ Other failures seen while building this, with their cause:
 | Bridge config | `ardupilot_gz_bringup/config/iris_bridge.yaml` | `kopterworx_gz/config/kopterworx_bridge.yaml` |
 | Spawn | z 0.2, yaw 90 deg | z 0.35 |
 | Hover, mean motor output | 0.561 | 0.452 |
+
+## Do we need ardupilot_gz? No
+
+`ardupilot_gz` (packages `ardupilot_gz_bringup`, `_gazebo`, `_description`, `_application`)
+is the upstream demo's launch layer around AP_DDS. `kopterworx_flat` uses none of it:
+its world is `kopterworx_gz/worlds/runway.sdf` and its bridge config is in
+`kopterworx_gz/config/`. From upstream only the plugin package `ardupilot_gazebo` is
+needed (it also provides the `runway` ground model the world includes). The iris
+sessions still read the iris bridge yaml and world from `ardupilot_gz`, because the
+iris is the upstream demo vehicle.
 
 ## What the upstream launch starts that we do not need
 

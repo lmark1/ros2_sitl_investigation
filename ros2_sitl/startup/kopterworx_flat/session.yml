@@ -1,6 +1,7 @@
 # Kopterworx on Gazebo Harmonic + ArduPilot SITL + mavros2.
 # One process per pane, the real command in every pane, no upstream launch file and
-# no AP_DDS. This is the bringup to replicate in uav_ros_simulation.
+# no AP_DDS, nothing from the ardupilot_gz packages. This is the bringup to replicate
+# in uav_ros_simulation.
 # How the panes are connected: ../README.md
 #
 #   GUI=false ./start.sh        no Gazebo window
@@ -59,7 +60,7 @@ windows:
         # navsat systems. -r = start running, -s = server only.
         - server:
             - gz sim -s -r -v 3 $([ "$HEADLESS" = true ] && echo --headless-rendering)
-              $(ros2 pkg prefix ardupilot_gz_gazebo)/share/ardupilot_gz_gazebo/worlds/runway.sdf
+              /root/ros2_sitl/kopterworx_gz/worlds/runway.sdf
         # Window. Optional, talks to the server over gz transport.
         - gui:
             - if [ "${GUI:-true}" = true ]; then gz sim -g -v 2; else echo "GUI disabled (GUI=false)"; fi
