@@ -1,0 +1,4 @@
+# The SITL binary in this image is ArduPilot master built with AP_DDS. Without a
+# micro-ROS agent it keeps trying to reach one. The flat sessions use mavros only.
+# Not needed on a firmware built without DDS (the larics fork).
+DDS_ENABLE 0

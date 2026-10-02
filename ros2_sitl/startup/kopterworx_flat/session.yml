@@ -1,0 +1,96 @@
+# Kopterworx on Gazebo Harmonic + ArduPilot SITL + mavros2.
+# One process per pane, the real command in every pane, no upstream launch file and
+# no AP_DDS. This is the bringup to replicate in uav_ros_simulation.
+# How the panes are connected: ../README.md
+#
+#   GUI=false ./start.sh        no Gazebo window
+#   HEADLESS=true ./start.sh    render camera/lidar with EGL (no X display needed)
+name: kopterworx_flat
+root: ./
+startup_window: fly
+pre_window: source /root/ros2_sitl/startup/shell_helpers.sh
+windows:
+  # ---------------------------------------------------------------- autopilot side
+  - sitl:
+      layout: even-vertical
+      panes:
+        # ArduPilot SITL + MAVProxy. Same sim_vehicle.py call as run_copter.sh on Noetic,
+        # plus "--model JSON" (the interface the Harmonic plugin speaks).
+        # sim_vehicle.py starts two processes:
+        #   arducopter  in its own tmux window "ardupilot1" (SITL_RITW_TERMINAL)
+        #               sends servo outputs to udp 127.0.0.1:9002 (the Gazebo plugin),
+        #               serves MAVLink on tcp 5760 (SERIAL0), 5762, 5763
+        #   mavproxy    in this pane, connects to tcp 5760, feeds RC to udp 5501,
+        #               forwards MAVLink to udp 14550. Type commands here.
+        # Parameter files are applied in order, later files win:
+        #   copter.parm, gazebo-iris.parm   SITL baseline (simulated IMU counts as calibrated)
+        #   kopterworx_v432.params          the aircraft's own parameters
+        #   kopterworx_sitl_overrides.parm  what SITL needs different (parachute off, trims)
+        #   sitl_no_dds.parm                this image's binary has AP_DDS built in, turn it off
+        # ArduPilot master's sim_vehicle.py no longer adds the two baseline files itself
+        # when --model is JSON, so they are listed here. Without them arming fails with
+        # "Gyros not calibrated".
+        - sim_vehicle:
+            - mkdir -p /root/ros2_sitl/logs/sitl_kopterworx && cd /root/ros2_sitl/logs/sitl_kopterworx
+            - export SITL_RITW_TERMINAL="tmux new-window -d -n ardupilot1"
+            - AP=/root/ros2_ws/src/ardupilot/Tools/autotest/default_params
+            - sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --no-rebuild -I0
+              --add-param-file=$AP/copter.parm
+              --add-param-file=$AP/gazebo-iris.parm
+              --add-param-file=/root/ros2_sitl/kopterworx_gz/config/kopterworx_v432.params
+              --add-param-file=/root/ros2_sitl/kopterworx_gz/config/kopterworx_sitl_overrides.parm
+              --add-param-file=/root/ros2_sitl/config/sitl_no_dds.parm
+              -m "--streamrate=50"
+        # mavros2. Binds udp 14550, where MAVProxy forwards. Same fcu_url as Noetic.
+        - mavros:
+            - ros2 launch mavros apm.launch fcu_url:=udp://:14550@localhost:14555
+        # mavros 2.15.1 leaves thrust_scaling unset and then drops the thrust of every
+        # AttitudeTarget. Set it once mavros is connected.
+        - mavros_setup:
+            - waitForMavros
+            - ros2 param set /mavros/setpoint_raw thrust_scaling 1.0
+            - waitForOdometry
+            - rate /mavros/local_position/pose
+  # ---------------------------------------------------------------- simulator side
+  - gazebo:
+      layout: tiled
+      panes:
+        # Physics + sensors server. The world carries the physics, sensors, imu and
+        # navsat systems. -r = start running, -s = server only.
+        - server:
+            - gz sim -s -r -v 3 $([ "$HEADLESS" = true ] && echo --headless-rendering)
+              $(ros2 pkg prefix ardupilot_gz_gazebo)/share/ardupilot_gz_gazebo/worlds/runway.sdf
+        # Window. Optional, talks to the server over gz transport.
+        - gui:
+            - if [ "${GUI:-true}" = true ]; then gz sim -g -v 2; else echo "GUI disabled (GUI=false)"; fi
+        # Put the vehicle into the running world. The model SDF contains the
+        # ArduPilotPlugin (listens on udp 9002) and four MulticopterMotorModel systems.
+        - spawn:
+            - waitForSimulation
+            - ros2 run ros_gz_sim create -world runway -name kopterworx -x 0 -y 0 -z 0.35
+              -file /root/ros2_sitl/kopterworx_gz/models/kopterworx/model.sdf
+        # gz topics -> ROS topics: /clock, /odometry, /camera/*, /joint_states ...
+        # The yaml is a template, fill in world and model name first.
+        - bridge:
+            - waitForSimulation
+            - sed -e 's/{{ robot_name }}/kopterworx/g' -e 's/{{ world_name }}/runway/g'
+              /root/ros2_sitl/kopterworx_gz/config/kopterworx_bridge.yaml > /tmp/kopterworx_bridge.yaml
+            - ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=/tmp/kopterworx_bridge.yaml
+  # ---------------------------------------------------------------- you
+  - fly:
+      layout: even-vertical
+      panes:
+        - status:
+            - waitForModel kopterworx && echo "[ok] model spawned"
+            - waitForRos && echo "[ok] bridge delivers /clock"
+            - waitForMavros && echo "[ok] mavros connected to SITL"
+            - waitForOdometry && echo "[ok] EKF has a position, ready to fly"
+            - rate /odometry; rate /mavros/global_position/local
+        - test:
+            - >-
+              clear;
+              echo "Ready when the pane above says so. Then, in this pane -";
+              echo "  python3 /root/ros2_sitl/scripts/hover_test.py --alt 3";
+              echo "  python3 /root/ros2_sitl/scripts/attitude_test.py --type-mask 7";
+              echo "or in window sitl, MAVProxy pane - mode guided, arm throttle, takeoff 3";
+              echo "Stop everything with /root/ros2_sitl/kill_sim.sh"

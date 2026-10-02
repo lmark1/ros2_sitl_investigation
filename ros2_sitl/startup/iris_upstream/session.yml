@@ -1,0 +1,48 @@
+# The upstream way, for comparison: ONE ros2 launch starts everything, including the
+# AP_DDS pieces we do not use. This is what step 1 of the investigation ran and what
+# start_sim.sh wraps. To see the same thing taken apart, open ../iris_flat/session.yml.
+#
+# iris_runway.launch.py (ardupilot_gz_bringup, Python) starts these processes:
+#   gz sim -s -r runway.sdf        Gazebo server            -> iris_flat pane "server"
+#   gz sim -g                      Gazebo GUI               -> pane "gui"
+#   robot_state_publisher          publishes the model SDF on /robot_description, TF
+#   ros_gz_sim create -topic ...   spawns from that topic   -> pane "spawn" (-file instead)
+#   parameter_bridge               gz -> ROS topics         -> pane "bridge"
+#   topic_tools relay gz/tf -> tf  TF from Gazebo           (not needed to fly)
+#   arducopter --model json ...    SITL, started directly   -> sim_vehicle.py in "sim_vehicle"
+#   mavproxy.py --non-interactive  forwards to udp 14550/1  -> the MAVProxy in "sim_vehicle"
+#   micro_ros_agent udp4 -p 2019   AP_DDS transport         (not used with mavros)
+name: iris_upstream
+root: ./
+startup_window: launch
+pre_window: source /root/ros2_sitl/startup/shell_helpers.sh
+windows:
+  - launch:
+      panes:
+        - ros2 launch ardupilot_gz_bringup iris_runway.launch.py rviz:=false
+          use_gz_sim_gui:=${GUI:-true}
+  - mav:
+      panes:
+        # The launch's own MAVProxy has no prompt. A second one for typing commands.
+        - mavproxy:
+            - waitForRos
+            - mavproxy.py --master udp:127.0.0.1:14550
+  - mavros:
+      layout: even-vertical
+      panes:
+        # The launch's MAVProxy runs without --streamrate, so its udp forward stays at
+        # 2 Hz. mavros therefore takes SITL's second serial port directly (tcp 5762)
+        # and asks for 50 Hz itself.
+        - mavros:
+            - waitForRos
+            - ros2 launch mavros apm.launch fcu_url:=tcp://127.0.0.1:5762
+        - mavros_setup:
+            - waitForMavros
+            - >-
+              ros2 service call /mavros/set_stream_rate mavros_msgs/srv/StreamRate
+              "{stream_id: 0, message_rate: 50, on_off: true}"
+            - ros2 param set /mavros/setpoint_raw thrust_scaling 1.0
+            - waitForOdometry
+            - rate /mavros/local_position/pose
+            - >-
+              echo "AP_DDS topics of this session -"; ros2 topic list | grep '^/ap'

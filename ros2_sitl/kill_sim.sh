@@ -1,12 +1,24 @@
 #!/bin/bash
-# Stop everything a ros2 launch of ardupilot_gz_bringup started (run inside the container).
-# Patterns use a [b]racket so this script's own command line and its caller never match.
+# Stop every process of a running simulation session (run inside the container).
+# Patterns are anchored to the start of the command line, so a shell or editor that
+# only mentions one of these names is never hit.
 tmux kill-server 2>/dev/null
-for pat in "ros2 launc[h]" "gz si[m]" "micro_ros_agen[t]" "mavproxy.p[y]" "parameter_bridg[e]" "ros_gz_sim/creat[e]" "robot_state_publishe[r]" "topic_tool[s]" "mavros_nod[e]"; do
-  pkill -f "$pat" 2>/dev/null
-done
+PATTERNS=(
+  '^[^ ]*python3 [^ ]*sim_vehicle\.py'      # SITL starter
+  '^[^ ]*python3 [^ ]*mavproxy\.py'         # MAVProxy
+  '^[^ ]*python3 [^ ]*/ros2 launch'         # any ros2 launch
+  '^(ruby [^ ]*/)?gz sim'                   # Gazebo server and GUI
+  '^[^ ]*/parameter_bridge'                 # ros_gz_bridge
+  '^[^ ]*/ros_gz_sim/create'                # spawner
+  '^[^ ]*/robot_state_publisher'
+  '^[^ ]*/mavros_node'
+  '^[^ ]*/micro_ros_agent'
+  '^[^ ]*/topic_tools/relay'
+)
+for p in "${PATTERNS[@]}"; do pkill -f "$p" 2>/dev/null; done
 pkill -x arducopter 2>/dev/null
 sleep 2
-pkill -9 -f "gz si[m]" 2>/dev/null
+pkill -9 -f '^(ruby [^ ]*/)?gz sim' 2>/dev/null
 pkill -9 -x arducopter 2>/dev/null
-pgrep -af "gz si[m]|arducopte[r]|micro_ros_agen[t]|mavproxy.p[y]|ros2 launc[h]" | cut -c1-100 || echo "sim stopped"
+left=$(pgrep -fl '^(ruby [^ ]*/)?gz sim|^[^ ]*python3 [^ ]*(sim_vehicle|mavproxy)\.py|^[^ ]*/mavros_node' ; pgrep -xl arducopter)
+[ -z "$left" ] && echo "sim stopped" || echo "still running: $left"

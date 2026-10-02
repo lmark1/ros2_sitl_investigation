@@ -1,0 +1,66 @@
+# Upstream iris (iris_with_gimbal, joint PID motor path) with the same flat layout as
+# kopterworx_flat: one process per pane, no upstream launch file, no AP_DDS.
+# Diff this file against ../kopterworx_flat/session.yml: only the model, its
+# parameters and its bridge config differ.
+#
+#   GUI=false ./start.sh        no Gazebo window
+#   HEADLESS=true ./start.sh    render the camera with EGL (no X display needed)
+name: iris_flat
+root: ./
+startup_window: fly
+pre_window: source /root/ros2_sitl/startup/shell_helpers.sh
+windows:
+  - sitl:
+      layout: even-vertical
+      panes:
+        # The iris model maps PWM 1100..1900, gazebo-iris-gimbal.parm sets MOT_PWM_MIN/MAX
+        # to match and configures the gimbal servos.
+        - sim_vehicle:
+            - mkdir -p /root/ros2_sitl/logs/sitl_iris && cd /root/ros2_sitl/logs/sitl_iris
+            - export SITL_RITW_TERMINAL="tmux new-window -d -n ardupilot1"
+            - AP=/root/ros2_ws/src/ardupilot/Tools/autotest/default_params
+            - sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --no-rebuild -I0
+              --add-param-file=$AP/copter.parm
+              --add-param-file=$(ros2 pkg prefix ardupilot_gazebo)/share/ardupilot_gazebo/config/gazebo-iris-gimbal.parm
+              --add-param-file=/root/ros2_sitl/config/sitl_no_dds.parm
+              -m "--streamrate=50"
+        - mavros:
+            - ros2 launch mavros apm.launch fcu_url:=udp://:14550@localhost:14555
+        - mavros_setup:
+            - waitForMavros
+            - ros2 param set /mavros/setpoint_raw thrust_scaling 1.0
+            - waitForOdometry
+            - rate /mavros/local_position/pose
+  - gazebo:
+      layout: tiled
+      panes:
+        - server:
+            - gz sim -s -r -v 3 $([ "$HEADLESS" = true ] && echo --headless-rendering)
+              $(ros2 pkg prefix ardupilot_gz_gazebo)/share/ardupilot_gz_gazebo/worlds/runway.sdf
+        - gui:
+            - if [ "${GUI:-true}" = true ]; then gz sim -g -v 2; else echo "GUI disabled (GUI=false)"; fi
+        - spawn:
+            - waitForSimulation
+            - ros2 run ros_gz_sim create -world runway -name iris -x 0 -y 0 -z 0.2 -Y 1.5708
+              -file $(ros2 pkg prefix ardupilot_gazebo)/share/ardupilot_gazebo/models/iris_with_gimbal/model.sdf
+        - bridge:
+            - waitForSimulation
+            - sed -e 's/{{ robot_name }}/iris/g' -e 's/{{ world_name }}/runway/g'
+              $(ros2 pkg prefix ardupilot_gz_bringup)/share/ardupilot_gz_bringup/config/iris_bridge.yaml > /tmp/iris_bridge.yaml
+            - ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=/tmp/iris_bridge.yaml
+  - fly:
+      layout: even-vertical
+      panes:
+        - status:
+            - waitForModel iris && echo "[ok] model spawned"
+            - waitForRos && echo "[ok] bridge delivers /clock"
+            - waitForMavros && echo "[ok] mavros connected to SITL"
+            - waitForOdometry && echo "[ok] EKF has a position, ready to fly"
+            - rate /odometry; rate /mavros/global_position/local
+        - test:
+            - >-
+              clear;
+              echo "Ready when the pane above says so. Then, in this pane -";
+              echo "  python3 /root/ros2_sitl/scripts/hover_test.py --alt 3";
+              echo "or in window sitl, MAVProxy pane - mode guided, arm throttle, takeoff 3";
+              echo "Stop everything with /root/ros2_sitl/kill_sim.sh"

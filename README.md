@@ -45,32 +45,31 @@ launch go to `ros2_sitl/logs/` (gitignored).
 
 ### Fly something
 
+Bringup is a tmuxinator session, one process per pane, as in `uav_ros_simulation/startup/`.
+**Read `ros2_sitl/startup/README.md`**: it has the wiring diagram, what every pane is
+for, how to check each link and what changes in the real integration.
+
 Inside the container:
 
 ```bash
-# upstream iris (step 1 baseline)
-/root/ros2_sitl/start_sim.sh
+cd /root/ros2_sitl/startup/kopterworx_flat && ./start.sh   # kopterworx, the bringup to copy
+cd /root/ros2_sitl/startup/iris_flat && ./start.sh         # upstream iris, same panes
+cd /root/ros2_sitl/startup/iris_upstream && ./start.sh     # upstream one-launch demo with AP_DDS, for comparison
 
-# kopterworx with its own params (step 3)
-export KW_PARMS=/root/ros2_sitl/kopterworx_gz/config/kopterworx_v432.params,/root/ros2_sitl/kopterworx_gz/config/kopterworx_sitl_overrides.parm
-/root/ros2_sitl/start_sim.sh kopterworx_gz kopterworx_runway.launch.py
-
-# headless (no Gazebo window, camera/lidar rendered with EGL)
-/root/ros2_sitl/start_sim.sh kopterworx_gz kopterworx_runway.launch.py use_gz_sim_gui:=false headless_rendering:=true
-
-# no GPU at all (inside the --nogpu container)
-EXTRA_ENV="LIBGL_ALWAYS_SOFTWARE=1 MESA_GL_VERSION_OVERRIDE=3.3" /root/ros2_sitl/start_sim.sh kopterworx_gz kopterworx_runway.launch.py use_gz_sim_gui:=false headless_rendering:=true
+GUI=false ./start.sh          # no Gazebo window
+HEADLESS=true ./start.sh      # render camera/lidar with EGL, no X display needed
+./start.sh --no-attach        # background, then: tmux attach -t kopterworx_flat
+/root/ros2_sitl/kill_sim.sh   # stop everything
 ```
 
-`start_sim.sh` kills any previous sim and opens a tmux session `sim` with three windows:
+Windows of the flat sessions:
 
-| window | what |
+| window | panes |
 |---|---|
-| `launch` | `ros2 launch ...` (Gazebo server + GUI, spawn, SITL, micro-ROS agent, ros_gz bridge) |
-| `mav` | MAVProxy console on udp 14550 (`mode guided`, `arm throttle`, `takeoff 3`, `param show X`) |
-| `mavros` | mavros2 on SITL SERIAL1 (tcp 5762), streams at 50 Hz, `thrust_scaling` set |
-
-`tmux attach -t sim` to look at them, `/root/ros2_sitl/kill_sim.sh` to stop everything.
+| `sitl` | `sim_vehicle` (SITL + MAVProxy prompt), `mavros`, `mavros_setup` |
+| `ardupilot1` | the `arducopter` process, opened by `sim_vehicle.py` |
+| `gazebo` | `server`, `gui`, `spawn`, `bridge` |
+| `fly` | `status` (prints `[ok]` per link), `test` (commands to run) |
 
 ### Test scripts (`ros2_sitl/scripts/`, run inside the container)
 
@@ -98,8 +97,8 @@ Useful topics: `/mavros/local_position/pose`, `/mavros/global_position/local`,
   `ros2_sitl/patches/ardupilot_gazebo_actuators.patch`, applied in the Dockerfile.
 - `config/kopterworx_v432.params` is the aircraft file, `config/kopterworx_sitl_overrides.parm`
   what SITL on ArduPilot master needs on top (parachute off, trims zero).
-- `launch/kopterworx_runway.launch.py` (world + vehicle) and `launch/kopterworx.launch.py`
-  (spawn + SITL + DDS agent, wraps the upstream `robot.launch.py`).
+- No launch files. Bringup is `startup/kopterworx_flat/session.yml`; `config/kopterworx_bridge.yaml`
+  is the gz to ROS bridge configuration it uses.
 
 ## Layout
 
@@ -108,8 +107,9 @@ ros2_sitl/
   Dockerfile, docker_build.sh, docker_run.sh   image and container
   ros2_gz.jazzy.repos                          workspace sources (Jazzy variant of upstream ros2_gz.repos)
   ros2_sitl_env.sh                             sourced in the container (ROS, GZ, resource paths)
-  start_sim.sh, kill_sim.sh, dex.sh            run / stop / exec helpers
-  config/sitl_extra.parm                       SITL params appended to every launch (SERIAL1_BAUD)
+  startup/                                     tmuxinator sessions + README with the wiring diagram
+  kill_sim.sh, dex.sh                          stop / exec helpers
+  config/                                      small SITL parameter files used by the sessions
   patches/                                     ArduPilotPlugin Actuators patch
   kopterworx_gz/                               the ported model, ament package
   scripts/                                     test scripts

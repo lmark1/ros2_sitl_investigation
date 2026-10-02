@@ -1,6 +1,11 @@
 # ROS 2 SITL findings
 
 Working notes for the plan in `ros2_sitl_investigation.md`. Dates are absolute.
+
+Note 2026-10-02: `start_sim.sh` and the Python launch files of `kopterworx_gz`, which
+the sections below mention, were replaced by tmuxinator sessions in
+`ros2_sitl/startup/` (see its README). The measurements stand; to reproduce them use
+`startup/kopterworx_flat` or `startup/iris_upstream` with `GUI=false HEADLESS=true`.
 Sections follow "What to write down" in the plan.
 
 ## Host (2026-09-16)
