@@ -7,9 +7,11 @@
 FROM eclipse-temurin:17-jdk-noble AS dds-gen-builder
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
-RUN git clone --recurse-submodules --depth 1 --branch master \
-    https://github.com/ArduPilot/Micro-XRCE-DDS-Gen.git /dds-gen \
-    && cd /dds-gen && ./gradlew assemble \
+# Pinned to the commit of the 2026-09-16 baseline (master at the time).
+RUN git clone https://github.com/ArduPilot/Micro-XRCE-DDS-Gen.git /dds-gen \
+    && cd /dds-gen && git checkout 4bc7ec2c7f77ae89cd216432f05470ad99f7faa1 \
+    && git submodule update --init --recursive \
+    && ./gradlew assemble \
     && git -C /dds-gen log -1 --format='%H' > /dds-gen/COMMIT
 
 FROM osrf/ros:jazzy-desktop-full
