@@ -107,9 +107,10 @@ launch and the build system differ too much for shared sources to stay readable.
 | `patches/ardupilot_gazebo_actuators.patch` | commit on `ardupilot_gazebo@larics-jazzy`; also propose upstream |
 | `ros2_sitl_env.sh` resource path workaround | one line in the ardupilot_gazebo env hooks (`share` on `GZ_SIM_RESOURCE_PATH` and `SDF_PATH`); also propose upstream |
 | `kopterworx_gz/scripts/gen_model.py` (generated SDF) | **dropped**. Its numbers already come from `kopterworx_base.urdf.xacro`; the xacro stays the source, only the plugin blocks in `util/multirotor_base.urdf.xacro` change |
-| `kopterworx_gz/launch` (Python), bridge yaml | rewritten as XML: `ardupilot_gazebo/launch/{kopterworx,spawn_kopterworx}.launch.xml`; bridge yaml to `config/` |
+| `kopterworx_gz/config/kopterworx_bridge.yaml` | `ardupilot_gazebo/config/`, loaded by `spawn_kopterworx.launch.xml`. The PoC's Python launch files were removed on 2026-10-02 in favour of the tmuxinator sessions. |
 | `kopterworx_sitl_overrides.parm` | `ardupilot_gazebo/config/sitl_overrides.parm`, appended by `run_copter.sh` |
-| `start_sim.sh`, `kill_sim.sh`, `dex.sh` | not needed: tmuxinator sessions and `run_docker.sh` |
+| `startup/kopterworx_flat/session.yml`, `startup/shell_helpers.sh`, `startup/README.md` | the template for `uav_ros_simulation/startup/` on jazzy: same panes, each command replaced by the corresponding launch file (table at the end of `startup/README.md`); the wait helpers go into the repo shell scripts |
+| `kill_sim.sh`, `dex.sh` | not needed: `tmux kill-session` and `run_docker.sh` |
 | `scripts/hover_test.py`, `cycle_test.py` | sim-only smoke test in uav_ros_simulation CI (launch_testing), runs before the stack test |
 | `scripts/attitude_test.py` | firmware interface regression test (mask 3 on `Larics-4.6.3`) |
 | `Dockerfile`, `docker_run.sh --nogpu` | basis of `Dockerfile.source` on jazzy and a `--noble-nogpu` mode of `run_docker.sh`; AP_DDS, micro-ROS agent, DDS-Gen, ardupilot_gz and SITL_Models are removed |
