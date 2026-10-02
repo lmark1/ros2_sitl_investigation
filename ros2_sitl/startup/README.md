@@ -94,7 +94,7 @@ Window `sitl`:
 | window `ardupilot1` | `arducopter --model JSON --defaults <files> --sim-address=127.0.0.1 -I0` | The flight controller firmware itself. | Sends servo PWM to udp 9002, serves MAVLink on tcp 5760, 5762, 5763, takes RC on udp 5501. | the detached `ardupilot1` window |
 | (in `sim_vehicle`) | `mavproxy.py --master tcp:127.0.0.1:5760 --sitl 127.0.0.1:5501 --out 127.0.0.1:14550 --streamrate 50` | Ground station. Feeds RC input to SITL, forwards MAVLink, gives you a prompt (`mode guided`, `arm throttle`, `param show X`). | SITL tcp 5760, mavros udp 14550 | same |
 | `mavros` | `ros2 launch mavros apm.launch fcu_url:=udp://:14550@localhost:14555` | MAVLink to ROS 2. The stack's only interface to the autopilot. | Binds udp 14550. | `mavros.launch`, same `fcu_url` |
-| `mavros_setup` | `ros2 param set /mavros/setpoint_raw thrust_scaling 1.0` | mavros 2.15.1 starts with this unset and then silently sends thrust 0 for every AttitudeTarget. | mavros | not needed on ROS 1 |
+| `mavros_setup` | `ros2 param set /mavros/setpoint_raw thrust_scaling 1.0` | Workaround for an upstream bug. The value belongs in the mavros config yaml, and the shipped `apm_config.yaml` has it. mavros 2.15.x plugins ignore every parameter file (mavlink/mavros#2294), so it stays unset and mavros silently sends thrust 0 for every AttitudeTarget. Fixed upstream by mavros#2309 (merged 2026-09-27), not in apt as of 2026-10-02. Remove this pane once the installed mavros has the fix. | mavros | not needed on ROS 1 |
 
 Window `gazebo`:
 
@@ -132,7 +132,7 @@ Other failures seen while building this, with their cause:
 | Arming refused permanently, "Gyros not calibrated" | the aircraft parameter file sets `INS_GYR3_ID`, the real kopterworx has three IMUs and SITL has two. ArduPilot treats a configured ID for a missing gyro as "not calibrated". It shows on the first start with a fresh SITL storage directory (`logs/sitl_kopterworx/eeprom.bin`); a second start on the same directory hides it. Fixed by `INS_GYR3_ID 0` in `kopterworx_sitl_overrides.parm`. Verified on clean storage 2026-10-02. |
 | Arming refused in the first 10 to 30 s, "Accels inconsistent" or "GPS 1 still configuring" | normal after boot while the simulated IMUs and GPS settle. The `status` pane waits for it (`waitForArmable`, the pre-arm bit of `/mavros/sys_status`), and the test scripts retry arming and print the reason. |
 | Arming refused, "Chute has no relay" | the aircraft parameter file enables a parachute on a relay, SITL has no relay: `kopterworx_sitl_overrides.parm` |
-| Vehicle armed, AttitudeTarget sent, never leaves the ground | `thrust_scaling` unset in mavros, see pane `mavros_setup` |
+| Vehicle armed, AttitudeTarget sent, never leaves the ground | `thrust_scaling` unset in mavros, see pane `mavros_setup`. Same bug means **no** plugin value from a mavros yaml is applied on 2.15.x: frame ids, timeouts, covariances all stay at built-in defaults. Check with a deliberately odd value and `ros2 param get`. |
 | AttitudeTarget with attitude + yaw rate is ignored | stock ArduPilot rejects it, the larics yaw-rate patch is needed (`Larics-4.6.3` has it, the master binary in this image does not) |
 
 ## Iris and kopterworx side by side

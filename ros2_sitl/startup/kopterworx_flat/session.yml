@@ -46,8 +46,10 @@ windows:
         # mavros2. Binds udp 14550, where MAVProxy forwards. Same fcu_url as Noetic.
         - mavros:
             - ros2 launch mavros apm.launch fcu_url:=udp://:14550@localhost:14555
-        # mavros 2.15.1 leaves thrust_scaling unset and then drops the thrust of every
-        # AttitudeTarget. Set it once mavros is connected.
+        # Workaround for mavlink/mavros#2294: mavros 2.15.x plugins ignore parameter files,
+        # so thrust_scaling from apm_config.yaml never arrives and mavros drops the thrust
+        # of every AttitudeTarget. Set it at runtime. Fixed upstream (mavros#2309), remove
+        # this pane once the installed mavros has the fix.
         - mavros_setup:
             - waitForMavros
             - ros2 param set /mavros/setpoint_raw thrust_scaling 1.0
