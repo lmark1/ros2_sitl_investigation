@@ -316,6 +316,8 @@ motor_speed). Worth proposing upstream, it does not change existing behaviour.
 
 ### thrust_multiplier: what it is, where 667 comes from, whether to keep it (2026-10-05)
 
+Standalone write-up: `thrust_multiplier.md`. Fix: USOIT-36.
+
 What it is. ArduPilot sends one PWM per motor. The plugin maps it to 0..1
 (`servo_min`..`servo_max`) and multiplies by `<multiplier>`; the result is the rotor
 speed reference in rad/s for the motor model. So the multiplier is **rotor speed at full

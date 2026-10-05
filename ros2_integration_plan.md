@@ -29,6 +29,8 @@ These supersede the text below where they differ.
 - **Firmware**: `Larics-4.6.3`. The aircraft parameter file is used unchanged, with a
   small SITL override file (third IMU id cleared, parachute off, trims zero).
 - **Jira**: the simulation part is USOIT-11 with subtasks USOIT-21 to 35.
+- **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
+  quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
 ## 1. Target
 
@@ -202,7 +204,8 @@ Exit: the onboarding flight works on Jazzy: `./start.sh`, automatic takeoff to 2
   test, headless without rendering sensors. CD: `yonx/uav_ros_stack:noble-bin-<tag>`,
   `yonx/uav_ros_simulation:noble-bin-<tag>`, source images `:noble`, `:noble-nogpu`.
 - Parity run against Noetic: same trajectory in both, compare hover throttle and
-  tracking error. This is where the `thrust_multiplier` question gets closed.
+  tracking error. This checks the port. It does not settle `thrust_multiplier`: Noetic uses
+  the same numbers, see `thrust_multiplier.md` and USOIT-36.
 
 Exit: CI green on jazzy with the integration test; parity numbers written down.
 
@@ -341,7 +344,7 @@ equivalents or removal. The sun direction plugin needs a small gz port. Convert
 | 3 | Parameter files are from 4.3.2/4.4.3 (`kopterworx_v432.params`, `tuned_v443.params`) | load on 4.6.3 in M0, list renamed or rejected parameters, produce a `kopterworx_v463.params` |
 | 4 | mavros2 behaviour differences (thrust_scaling, stream rates, QoS) | M0 item 3, explicit config in the launch files |
 | 5 | URDF xacro through the gz URDF converter | M0 item 4, fallback SDF xacro |
-| 6 | Hover throttle differs from the value stored in the aircraft file (0.224 learned vs 0.290) | measure the Noetic sim in M3 parity run, then fix `thrust_multiplier` (667 or about 602) |
+| 6 | Hover throttle differs from the value stored in the aircraft file (0.225 learned vs 0.290) | `thrust_multiplier.md`, USOIT-36: the multiplier becomes `max_rot_velocity` (one constant), its value is checked against a real-aircraft number |
 | 7 | External model dependencies with no gz version: `storm_gazebo_ros_magnet`, `velodyne_simulator` LiDAR-X, `aerial_manipulators_description` | lidar in M4 from its definition, magnet and manipulator in M6 |
 | 8 | ROS 2 drivers for the onboard sensors | confirm per sensor at the start of M5 |
 | 9 | Drift between `main` and `jazzy` during four months | cherry-pick rule in section 4, keep the port of each package short |
@@ -356,7 +359,8 @@ equivalents or removal. The sun direction plugin needs a small gz port. Convert
    in M4. If one of them is meant to be retired, say so and the port shrinks.
 2. **Scope of v1.** Kopterworx only, with camera, and lidar in M4. Which other vehicles,
    worlds and sessions are still in use?
-3. **Noetic hover number**, to close `thrust_multiplier`.
+3. **Real-aircraft number** for USOIT-36: maximum motor rpm with the 22x8 propeller, or hover
+   PWM from a flight log with the take-off mass. (Replaces the Noetic hover number.)
 4. **Land-detector fix** on `Larics-4.6.3`: needed or obsolete?
 5. **Upstream PRs** for the plugin patch and the env hook: yes or keep in the fork.
 6. **Who and when**: one or two people, and the date after which `jazzy` is the default.

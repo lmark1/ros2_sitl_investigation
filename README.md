@@ -8,6 +8,8 @@ setup. Everything runs in one docker image, nothing is installed on the host.
   AP_DDS, the kopterworx port, headless timing, every patch and failure).
 - `ros2_integration_plan.md`: how to move this into `uav_ros_simulation` and
   `uav_ros_stack` for real (branches, milestones, per-package porting notes, risks).
+- `thrust_multiplier.md`: what the model's `thrust_multiplier` is, where 667 comes from,
+  measurements, and the fix (USOIT-36).
 - `ros2_sitl/`: the docker setup, the kopterworx package, helper scripts.
 
 ## Prerequisites (host)
