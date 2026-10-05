@@ -310,10 +310,75 @@ motor_speed). Worth proposing upstream, it does not change existing behaviour.
   range corresponds to a hover PWM of about 1500 (0.50). The Noetic sim was not run
   here (its container is off limits); check there with `param show MOT_THST_HOVER`
   after a hover or read `mavros/rc/out`.
-- If the target is the file's 0.29, `THRUST_MULTIPLIER` in `gen_model.py` becomes
-  301 / 0.50 = 602 (today 667). If the target is the physics (9 kg, k = 2.44e-4), 667 is
-  right and the new sim is consistent with it to 0.1 %. Not changed, waiting for the
-  Noetic number.
+- Analytically 0.29 corresponds to a multiplier of about 602. Measured 2026-10-05 with a
+  scratch copy of the model (see next section): 602 gives hover PWM 1501 and a learned
+  `MOT_THST_HOVER` of 0.275, 667 gives 1452 and 0.225. Not changed, see the conclusion below.
+
+### thrust_multiplier: what it is, where 667 comes from, whether to keep it (2026-10-05)
+
+What it is. ArduPilot sends one PWM per motor. The plugin maps it to 0..1
+(`servo_min`..`servo_max`) and multiplies by `<multiplier>`; the result is the rotor
+speed reference in rad/s for the motor model. So the multiplier is **rotor speed at full
+throttle**, nothing to do with thrust directly (thrust = motor_constant x speed^2). The
+name `thrust_multiplier` is ours: argument of the `ardupilot` xacro macro in
+larics/ardupilot_gazebo (a4d3060, 2020-04-24). Upstream calls it `<multiplier>` and every
+upstream model has one (iris: 838). It cannot be removed, some number has to turn PWM
+into rad/s.
+
+Where 667 comes from.
+
+- It is the model's `max_rot_velocity`. Same number in both places for kopterworx
+  (667/667), broli (667/667), hawk (628.318/628.318), ardrone (1475/1475). Only bebop
+  differs (1000 vs 1475). Both were changed together from 600 to 667 in 7a39b49
+  (2022-12-05), the commit that also switched the propeller data from APC 22x11E to 22x8.
+- `motor_constant` 2.4407e-4 and `moment_constant` 0.04415 are reproducible:
+  `motor_parameters/get_thrust_and_torque_k.m` on `22x8.mat` (APC static data) gives
+  2.440724618e-04 and 0.0441480777. (The script takes the quadratic coefficient of a full
+  second order fit; a pure k w^2 fit gives 2.398e-4, 1.7 % lower.)
+- 667 rad/s itself (6370 rpm) is **not** derived anywhere in the repo. No motor, ESC or
+  battery data there. It implies 108.6 N (11.07 kgf) per motor, thrust to weight 4.9 at
+  9 kg. The old 600 gives 87.9 N, thrust to weight 4.0.
+
+Live check (kopterworx_flat, headless, clean eeprom, 50 s hover at 3 m):
+
+| multiplier | hover PWM | plugin output | 4 k w^2 | weight (9.05 kg) | learned MOT_THST_HOVER |
+|---|---|---|---|---|---|
+| 667 (repo) | 1452 (0.452) | 301.48 rad/s | 88.74 N | 88.78 N | 0.225 |
+| 602 (scratch copy) | 1501 (0.501) | 301.60 rad/s | 88.81 N | 88.78 N | 0.275 |
+
+The conversion does what the code says, and the hover rotor speed is the same in both
+runs, only the PWM that produces it moves. The aircraft file has `MOT_THST_HOVER` 0.290
+(learned on the real aircraft). With 667 the simulated vehicle hovers at 22 % less
+throttle than the real one; with 600 it is within 5 %. Which side is off (max rotor
+speed, real mass above 9 kg, or real thrust below the APC static table) cannot be
+decided from the repo; it needs one number from the real aircraft (hover PWM from a
+flight log with the take-off mass, or max rpm of the motor and propeller).
+
+What it affects.
+
+- Hover throttle. ArduPilot learns it (`MOT_HOVER_LEARN 2`), so the vehicle flies either way.
+- Plant gain seen by the rate loops: thrust per unit of command at hover is 97.9 N at 667
+  and 88.4 N at 602, 10 % apart.
+- Thrust headroom (4.9 vs 4.0).
+- **Not** what the stack sends. `kopterworx_v432.params` has `GUID_OPTIONS 0`, so
+  ArduPilot reads the thrust of an AttitudeTarget as a climb rate (0.5 = hold altitude),
+  on master and on Larics-4.4.3 alike. The xacro comment "tuned in order for
+  mavros/setpoint_raw/attitude/thrust to reflect real-world behavior" dates from the
+  parameter sets with `GUID_OPTIONS 8` (thrust as thrust,
+  `kopterworx_red_v41_thrust_compassless.params`), where the mavros thrust went straight
+  to the motors. It is stale for the current parameters.
+
+When it has to change. Only when the powertrain of the modelled aircraft changes (motor,
+propeller, battery voltage), and then together with `max_rot_velocity`. Not for a ROS,
+Gazebo or firmware version, not per world. If the two diverge: multiplier above
+`max_rot_velocity` and the motor model clamps (classic `gazebo_motor_model.cpp:131`,
+gz-sim8 `MulticopterMotorModel.cc:537`), so the top of the throttle range does nothing
+and ArduPilot does not know; multiplier below and the maximum is never reached.
+
+Conclusion. Keep the conversion, drop it as a separate knob: one constant,
+`max_rot_velocity`, used for both the motor model and the plugin `<multiplier>`, no
+macro argument, and a comment that says "rotor speed at full throttle". Whether 667 is
+the right maximum is a question about the real aircraft, not about the port.
 
 ### What was not ported (by choice or not needed)
 
