@@ -382,6 +382,59 @@ Conclusion. Keep the conversion, drop it as a separate knob: one constant,
 macro argument, and a comment that says "rotor speed at full throttle". Whether 667 is
 the right maximum is a question about the real aircraft, not about the port.
 
+### base_link and base_link_inertia: do we need both? (2026-10-06)
+
+Where they come from. RotorS `multirotor_base.xacro`, copied into
+`larics/ardupilot_gazebo/models/util/multirotor_base.urdf.xacro`: `base_link` is the
+root and has no inertial, `base_joint` (fixed, origin 0 0 0) hangs `base_link_inertia`
+under it, and that link carries the mass, the inertia tensor, the mesh and the
+collision box. The reason is robot_state_publisher: kdl_parser refuses a root link
+with inertia ("KDL does not support a root link with an inertia. As a workaround, you
+can add an extra dummy link"). Jazzy's kdl_parser still prints that line, as a warning,
+and then says "Robot initialized" (tested).
+
+What Gazebo does with the pair. Nothing keeps it. The URDF to SDF converter lumps
+fixed joints by default, on Classic and on Harmonic (sdformat 14.9 here). Tested with
+`gz sdf -p` on three variants of a test URDF (massless root + inertia link, the same
+with `preserveFixedJoint`, root with the inertia directly): the first and the third give
+the same SDF, one link `red/base_link` with the summed mass and the combined inertia,
+the lidar sensor moved onto it with its pose. Asking to preserve the joint fails:
+"link[red/base_link] has no <inertial> block ... ensure this link has a valid mass",
+exit 255. So a massless root link only exists in the URDF, never in the simulation, and
+the physics are identical with or without `base_link_inertia`. The PoC model has one
+`base_link` with the mass and flies.
+
+Who refers to which.
+
+| name | referenced by |
+|---|---|
+| `base_link` | the four rotor joints, `imu_link`, camera and gimbal macros, odometry plugin (`parent_link` and `child_frame_id`), wind plugin (`linkName`), movable masses, the `<gazebo reference>` blocks (damping, collide bitmask), mavros `apm_config_NAMESPACE.yaml` frame ids (`NAMESPACE/base_link`) |
+| `base_link_inertia` | parent of the velodyne macro and of the magnet plugin, in kopterworx, hawk and broli. Nothing else: zero hits in uav_ros_stack (no file there names either link), none in launch, yaml or rviz files of uav_ros_simulation except a RotorS techpod rviz config |
+
+Since `base_joint` has origin 0 0 0, the TF `red/base_link -> red/base_link_inertia` is
+the identity. Reparenting the velodyne and the magnet to `base_link` changes no
+transform.
+
+Answer.
+
+- `base_link`: needed. Root of the URDF, the body frame of every plugin, of mavros and
+  of the odometry, and the only body that exists in Gazebo.
+- `base_link_inertia`: not needed for anything but the kdl_parser warning. Dropping it
+  means: inertial, visual and collision move into `base_link`, `base_joint` goes, the
+  velodyne and magnet macros get `parent=".../base_link"`, the second
+  `<gazebo reference="base_link_inertia">` block goes. The Gazebo model is byte for
+  byte the same, mavros and the stack see no change, the TF tree loses one identity
+  frame, robot_state_publisher prints one WARN line at start. Keeping it costs nothing
+  either. Recommendation for the port: drop it, one body, one name.
+
+Side finding, matters for the sensors (USOIT-27, 28). After lumping, a sensor on a fixed
+link sits on `base_link`, and the converter does not add a `<gz_frame_id>`. Gazebo then
+stamps the messages with the scoped sensor name (tested with an IMU in place of the
+lidar: frame_id `t::red/base_link::lidar`), not with the URDF link name that
+robot_state_publisher puts in TF. Every sensor on a fixed link needs an explicit
+`<gz_frame_id>red/velodyne</gz_frame_id>` (the PoC camera has one). This is independent
+of whether `base_link_inertia` stays.
+
 ### What was not ported (by choice or not needed)
 
 - gimbal, tilt rotors, manipulator, wind, bag, magnet, FPV camera, multirotor_base
