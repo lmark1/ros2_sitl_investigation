@@ -134,7 +134,7 @@ launch and the build system differ too much for shared sources to stay readable.
 | `kopterworx_sitl_overrides.parm` | `ardupilot_gazebo/config/sitl_overrides.parm`, appended by `run_copter.sh` |
 | `startup/kopterworx_flat/session.yml`, `startup/shell_helpers.sh`, `startup/README.md` | the template for `uav_ros_simulation/startup/` on jazzy: same panes, each command replaced by the corresponding launch file (table at the end of `startup/README.md`); the wait helpers go into the repo shell scripts |
 | `kill_sim.sh`, `dex.sh` | not needed: `tmux kill-session` and `run_docker.sh` |
-| `scripts/hover_test.py`, `cycle_test.py` | sim-only smoke test in uav_ros_simulation CI (launch_testing), runs before the stack test |
+| `scripts/hover_test.py`, `cycle_test.py` | `ardupilot_gazebo_description/test/`, run by hand against the sim session (the sim-only CI smoke test, USOIT-31, was dropped on 2026-10-08) |
 | `scripts/attitude_test.py` | firmware interface regression test (mask 3 on `Larics-4.6.3`) |
 | `Dockerfile`, `docker_run.sh --nogpu` | basis of `Dockerfile.source` on jazzy and a `--noble-nogpu` mode of `run_docker.sh`; AP_DDS, micro-ROS agent, DDS-Gen, ardupilot_gz and SITL_Models are removed |
 | `ros2_sitl_findings.md` | `uav_ros_simulation/docs/ROS2_MIGRATION.md` |
@@ -178,9 +178,9 @@ Exit: hover and attitude tests pass on `Larics-4.6.3` from a xacro-spawned kopte
   `thrust_scaling` set explicitly.
 - `installation/*.sh` for 24.04, `Dockerfile.source`, `run_docker.sh --noble`.
 - Session `kopterworx_one_flying` with the simulation panes only.
-- CI job: build + headless hover smoke test.
+- No sim-only CI smoke test (USOIT-31 dropped 2026-10-08). The stack integration test in M3 is the automated check.
 
-Exit: `./start.sh` brings up Gazebo, SITL and mavros; `hover_test` passes in CI.
+Exit: `./start.sh` brings up Gazebo, SITL and mavros; `hover_test` passes by hand.
 
 ### M2. Stack core: the default flying session (5 to 6 weeks)
 Order follows the dependency graph.
@@ -200,7 +200,7 @@ Exit: the onboarding flight works on Jazzy: `./start.sh`, automatic takeoff to 2
 - `uav_ros_tests`: the same scenario (3 cycles of takeoff to 2 m, random tracker pose,
   land; 0.3 m tolerances) as `launch_testing` + gtest. Its test description is the only
   Python launch file in the port.
-- CI in both repos on the jazzy branches: build, SITL build, smoke test, integration
+- CI in both repos on the jazzy branches: build, SITL build, integration
   test, headless without rendering sensors. CD: `yonx/uav_ros_stack:noble-bin-<tag>`,
   `yonx/uav_ros_simulation:noble-bin-<tag>`, source images `:noble`, `:noble-nogpu`.
 - Parity run against Noetic: same trajectory in both, compare hover throttle and

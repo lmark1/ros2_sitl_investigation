@@ -121,8 +121,9 @@ causes, not separable from the repo:
    for matching the real aircraft are the physical values: mass, motor constant, maximum
    rotor speed.
 4. The value 667 has no recorded source.
-5. USOIT-32 plans to settle the value by comparing with the Noetic simulation. Noetic
-   uses the same numbers, so that comparison checks the port, not the value.
+5. USOIT-32 used to plan settling the value by comparing with the Noetic simulation.
+   Noetic uses the same numbers, so that comparison checks the port, not the value.
+   USOIT-32 was rewritten on 2026-10-08 to do exactly that: same hover throttle as Noetic.
 
 ## Fix
 
@@ -175,4 +176,4 @@ Motor constants: load `motor_parameters/22x8.mat` from `larics/ardupilot_gazebo`
 USOIT-36 "5a. Kopterworx model: replace thrust_multiplier with max_rot_velocity, check the
 value against the real aircraft", subtask of USOIT-11. Part A is the rename (no
 behaviour change), part B the value and waits for the real-aircraft number. It overrides
-the "multiplier 667" wording in USOIT-25 item 4 and step 3 of USOIT-32.
+the "multiplier 667" wording in USOIT-25 item 4. USOIT-32 no longer mentions the value.
