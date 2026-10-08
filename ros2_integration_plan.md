@@ -203,9 +203,10 @@ Exit: the onboarding flight works on Jazzy: `./start.sh`, automatic takeoff to 2
 - CI in both repos on the jazzy branches: build, SITL build, integration
   test, headless without rendering sensors. CD: `yonx/uav_ros_stack:noble-bin-<tag>`,
   `yonx/uav_ros_simulation:noble-bin-<tag>`, source images `:noble`, `:noble-nogpu`.
-- Parity run against Noetic: same trajectory in both, compare hover throttle and
-  tracking error. This checks the port. It does not settle `thrust_multiplier`: Noetic uses
-  the same numbers, see `thrust_multiplier.md` and USOIT-36.
+- Parity run against Noetic, stack level: same trajectory in both, compare tracking
+  error. The sim-only parity (hover throttle and attitude step response) is USOIT-32 and
+  runs earlier. Neither settles `thrust_multiplier`: Noetic uses the same numbers, see
+  `thrust_multiplier.md` and USOIT-36.
 
 Exit: CI green on jazzy with the integration test; parity numbers written down.
 
