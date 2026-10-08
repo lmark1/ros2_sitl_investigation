@@ -28,7 +28,8 @@ These supersede the text below where they differ.
   `ardupilot_gz`, SITL_Models, micro-ROS-Agent or DDS-Gen is used.
 - **Firmware**: `Larics-4.6.3`. The aircraft parameter file is used unchanged, with a
   small SITL override file (third IMU id cleared, parachute off, trims zero).
-- **Jira**: the simulation part is USOIT-11 with subtasks USOIT-21 to 35.
+- **Jira**: the simulation part is USOIT-11 with subtasks USOIT-21 to 36. Dropped on
+  2026-10-08: USOIT-31 (sim-only CI smoke test) and USOIT-33 (additional worlds).
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
@@ -217,7 +218,9 @@ Exit: CI green on jazzy with the integration test; parity numbers written down.
 - Sessions: `kopterworx_one_flying_mpc_tracker`, `double_flying`, `triple_flying`
   (multi-vehicle: section 7.1).
 - Lidar macro (needs the LiDAR-X definition from `velodyne_simulator`), gimbal, FPV camera.
-- `larics_gazebo_worlds`: `empty` first, then the worlds in use (section 7.4).
+- `larics_gazebo_worlds`: only `empty` (USOIT-24). Other worlds are not ported in
+  USOIT-11 (USOIT-33 dropped 2026-10-08); if one is needed later it is a new ticket
+  (section 7.4).
 
 Exit: every session in `startup/` that is still wanted starts and flies.
 
@@ -333,8 +336,9 @@ Python remains in exactly two places:
 gz worlds need the system plugins and spherical coordinates added, and Ogre 1 material
 scripts (`gazebo.material`, 22 references) replaced by SDF materials. Models from the
 Classic online database (`house_1`, `office_building`, `suv`, ...) need Fuel
-equivalents or removal. The sun direction plugin needs a small gz port. Convert
-`empty` in M1, the others by demand in M4/M6.
+equivalents or removal. The sun direction plugin needs a small gz port. Only
+`empty` is converted (USOIT-24). No other world is in scope of USOIT-11; USOIT-33 was
+dropped on 2026-10-08. A world that turns out to be needed gets its own ticket.
 
 ## 8. Risks and open points
 
@@ -358,8 +362,8 @@ equivalents or removal. The sun direction plugin needs a small gz port. Convert
    (`pid_carrot`: carrot_reference_node + pid_cascade_node); ControlManager/UAVManager
    is the newer nodelet path. The plan ports the node path first (M2) and the managers
    in M4. If one of them is meant to be retired, say so and the port shrinks.
-2. **Scope of v1.** Kopterworx only, with camera, and lidar in M4. Which other vehicles,
-   worlds and sessions are still in use?
+2. **Scope of v1.** Kopterworx only, with camera, and lidar in M4. Worlds: `empty` only
+   (decided 2026-10-08). Which other vehicles and sessions are still in use?
 3. **Real-aircraft number** for USOIT-36: maximum motor rpm with the 22x8 propeller, or hover
    PWM from a flight log with the take-off mass. (Replaces the Noetic hover number.)
 4. **Land-detector fix** on `Larics-4.6.3`: needed or obsolete?
