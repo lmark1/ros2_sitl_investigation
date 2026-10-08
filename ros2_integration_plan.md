@@ -138,7 +138,7 @@ launch and the build system differ too much for shared sources to stay readable.
 | `scripts/hover_test.py`, `cycle_test.py` | `ardupilot_gazebo_description/test/`, run by hand against the sim session (the sim-only CI smoke test, USOIT-31, was dropped on 2026-10-08) |
 | `scripts/attitude_test.py` | firmware interface regression test (mask 3 on `Larics-4.6.3`) |
 | `Dockerfile`, `docker_run.sh --nogpu` | basis of `Dockerfile.source` on jazzy and a `--noble-nogpu` mode of `run_docker.sh`; AP_DDS, micro-ROS agent, DDS-Gen, ardupilot_gz and SITL_Models are removed |
-| `ros2_sitl_findings.md` | `uav_ros_simulation/docs/ROS2_MIGRATION.md` |
+| `ros2_sitl_findings.md`, `startup/README.md` | the README of `ardupilot_gazebo_description` (USOIT-34). No repo-wide migration doc: documentation in USOIT-11 is the package README only (decided 2026-10-08) |
 
 ## 6. Milestones
 
