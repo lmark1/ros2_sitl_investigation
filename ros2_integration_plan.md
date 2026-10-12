@@ -30,6 +30,10 @@ These supersede the text below where they differ.
   small SITL override file (third IMU id cleared, parachute off, trims zero).
 - **Jira**: the simulation part is USOIT-11 with subtasks USOIT-21 to 36. Dropped on
   2026-10-08: USOIT-31 (sim-only CI smoke test) and USOIT-33 (additional worlds).
+  Install scripts and Docker images are USOIT-12 with subtasks USOIT-47 to 50
+  (2026-10-12): stack install scripts on 24.04 and colcon, sim install chain, source
+  image, binary image. One env file `~/.uav_env.sh` instead of bashrc edits, one
+  `noble` tag per image with GPU chosen at run time, real binary image without sources.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
@@ -137,7 +141,7 @@ launch and the build system differ too much for shared sources to stay readable.
 | `kill_sim.sh`, `dex.sh` | not needed: `tmux kill-session` and `run_docker.sh` |
 | `scripts/hover_test.py`, `cycle_test.py` | `ardupilot_gazebo_description/test/`, run by hand against the sim session (the sim-only CI smoke test, USOIT-31, was dropped on 2026-10-08) |
 | `scripts/attitude_test.py` | firmware interface regression test (mask 3 on `Larics-4.6.3`) |
-| `Dockerfile`, `docker_run.sh --nogpu` | basis of `Dockerfile.source` on jazzy and a `--noble-nogpu` mode of `run_docker.sh`; AP_DDS, micro-ROS agent, DDS-Gen, ardupilot_gz and SITL_Models are removed |
+| `Dockerfile`, `docker_run.sh --nogpu` | basis of `Dockerfile.source` on jazzy (USOIT-49). No `noble-nogpu` image: one `noble` image, GPU at run time with `--enable-gpu` (the PoC renders on the GPU from a plain base through the container toolkit). AP_DDS, micro-ROS agent, DDS-Gen, ardupilot_gz and SITL_Models are removed |
 | `ros2_sitl_findings.md`, `startup/README.md` | the README of `ardupilot_gazebo_description` (USOIT-34). No repo-wide migration doc: documentation in USOIT-11 is the package README only (decided 2026-10-08) |
 
 ## 6. Milestones
@@ -203,7 +207,7 @@ Exit: the onboarding flight works on Jazzy: `./start.sh`, automatic takeoff to 2
   Python launch file in the port.
 - CI in both repos on the jazzy branches: build, SITL build, integration
   test, headless without rendering sensors. CD: `yonx/uav_ros_stack:noble-bin-<tag>`,
-  `yonx/uav_ros_simulation:noble-bin-<tag>`, source images `:noble`, `:noble-nogpu`.
+  `yonx/uav_ros_simulation:noble-bin-<tag>`, source image `:noble` (USOIT-49, 50).
 - Parity run against Noetic, stack level: same trajectory in both, compare tracking
   error. The sim-only parity (hover throttle and attitude step response) is USOIT-32 and
   runs earlier. Neither settles `thrust_multiplier`: Noetic uses the same numbers, see
