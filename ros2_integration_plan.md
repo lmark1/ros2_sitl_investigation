@@ -42,7 +42,9 @@ These supersede the text below where they differ.
   the gitman `stack` source runs `gitman install core` as a post-script. Dropped on
   2026-10-13 as nitpicks: `--no-rebuild`, pinned host keys, apt list and X cookie
   hygiene, and the "later" list (non-root user, `--privileged` opt-in, ssh-add in CI,
-  `common.sh`, ccache).
+  `common.sh`, ccache). Kept as on Noetic (decided 2026-10-13): the `stack_sparse` gitman
+  source and the `--sparse` flag, so the binary image adds the sim to the copied stack
+  install space without cloning the stack packages again; one workspace, not an underlay.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
