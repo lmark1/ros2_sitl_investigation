@@ -313,10 +313,13 @@ motor_speed). Worth proposing upstream, it does not change existing behaviour.
 - Analytically 0.29 corresponds to a multiplier of about 602. Measured 2026-10-05 with a
   scratch copy of the model (see next section): 602 gives hover PWM 1501 and a learned
   `MOT_THST_HOVER` of 0.275, 667 gives 1452 and 0.225.
-- Settled 2026-10-13 (USOIT-36 part B): the real take-off mass is 9 kg, so the value is
-  600. Measured: PWM 1502 (real aircraft 1500 by its own curve), 301.2 rad/s, learned
-  0.2775; the rest of the gap to 0.290 is ArduPilot's air density compensation at the
-  584 m SITL home. `thrust_multiplier.md`, "Part B result".
+- Closed 2026-10-13 (USOIT-36 part B dropped): there is no physical kopterworx and the
+  0.290 in the parameter file came from a simulation. The Noetic sim uses 667, parity
+  with it is the only reference, so 667 stays. The 600 derivation and its measurement
+  (PWM 1502, 301.2 rad/s, learned 0.2775) are kept in `thrust_multiplier.md`, "Part B
+  outcome", for a future hardware number. A 600 was announced earlier that day on
+  USOIT-36 and here; that was wrong and is withdrawn. How to set every model number
+  when data for a UAV exists: `thrust_multiplier.md`, "Modelling a UAV".
 
 ### thrust_multiplier: what it is, where 667 comes from, whether to keep it (2026-10-05)
 
@@ -354,11 +357,12 @@ Live check (kopterworx_flat, headless, clean eeprom, 50 s hover at 3 m):
 
 The conversion does what the code says, and the hover rotor speed is the same in both
 runs, only the PWM that produces it moves. The aircraft file has `MOT_THST_HOVER` 0.290
-(learned on the real aircraft). With 667 the simulated vehicle hovers at 22 % less
+(taken for a value learned on the real aircraft; it came from a simulation, 2026-10-13). With 667 the simulated vehicle hovers at 22 % less
 throttle than the real one; with 600 it is within 5 %. Which side is off (max rotor
 speed, real mass above 9 kg, or real thrust below the APC static table) cannot be
 decided from the repo; it needs one number from the real aircraft (hover PWM from a
-flight log with the take-off mass, or max rpm of the motor and propeller).
+flight log with the take-off mass, or max rpm of the motor and propeller). There is no
+physical kopterworx (2026-10-13), so 667 stays.
 
 What it affects.
 
