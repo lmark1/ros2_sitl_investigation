@@ -155,45 +155,37 @@ and was left as it is.
 
 ## Part B result (2026-10-13)
 
-Input: real take-off mass 9 kg (Lovro, 2026-10-13). No flight log is needed: the learned
-`MOT_THST_HOVER` 0.290 in `kopterworx_v432.params` is the hover output in disguise. Run
-back through the aircraft's own curve (`MOT_THST_EXPO` 0.65, `MOT_SPIN_MIN` 0.13,
-`MOT_SPIN_MAX` 0.95; `AP_Motors_Thrust_Linearization.cpp`) it gives a motor output of
-0.500, PWM 1500, at full battery. The same inversion reproduces the two measured rows
-above within 1 % (0.225 gives 1440 vs 1452 measured, 0.275 gives 1486 vs 1501).
+Input: take-off mass `m = 9 kg`. Constants: `k = 2.4407e-4 N s^2` (thrust per rotor `T = k w^2`), `g = 9.81`. Aircraft file: `MOT_THST_EXPO e = 0.65`, `MOT_SPIN_MIN 0.13`, `MOT_SPIN_MAX 0.95`, `MOT_THST_HOVER 0.290`.
 
-Candidate by the formula in the ticket: `sqrt(9 * 9.81 / (4 k)) / 0.500` = 602 (604 with
-the 9.05 kg model mass). Outside the 634 to 700 band, so the value changes.
+1. Rotor speed at hover, from the motor model. Independent of the multiplier.
 
-Measured with 600 (the eight `667.0` in `model.sdf` set to `600.0`, clean storage, 50 s
-hover at 3 m, headless):
+    `w_h = sqrt(m g / (4 k)) = sqrt(9 * 9.81 / (4 * 2.4407e-4)) = 301 rad/s`
 
-| | measured | real aircraft |
-|---|---|---|
-| mean normalised output | 0.502 (PWM 1502) | 0.500 (PWM 1500) |
-| rotor speed published by the plugin | 301.2 rad/s (0.502 x 600; gate 301 within 5) | |
-| learned `MOT_THST_HOVER` | 0.2775 | 0.290 |
+2. Motor output of the real aircraft at hover. ArduPilot learns `MOT_THST_HOVER` in its linearised thrust domain and converts it to a 0..1 output with its thrust curve (`AP_Motors_Thrust_Linearization.cpp`, `thrust_to_actuator`):
 
-Why the learned value is still 4 % under 0.290 although the PWM matches: ArduPilot
-compensates the throttle for air density (`Thrust_Linearization::get_compensation_gain`,
-`AP_MOTORS_DENSITY_COMP`), so the stored hover value is for sea level. SITL flies at
-CMAC, 584 m above sea level (`Tools/autotest/locations.txt`), density ratio 0.945. The
-hover thrust at the site is 0.2775 / 0.945 = 0.294, the same as the 0.293 the curve gives
-for PWM 1502. The real aircraft learned 0.290 near sea level. With 600 the simulated
-hover matches the real one within 1.5 %; what is left in the stored parameter is the
-SITL home altitude, not the model. Battery voltage plays no part: SITL reports no
-voltage on `BATT_VOLT_PIN` 14 (a Cube pin), and ArduPilot then keeps `lift_max` at 1.
+    `r = ((e - 1) + sqrt((1 - e)^2 + 4 e T)) / (2 e) = (-0.35 + sqrt(0.1225 + 2.6 * 0.290)) / 1.3 = 0.451`
 
-Decision: `max_rot_velocity` 600. The candidate is 602; 0.3 % is below the repeatability
-of the learned value (0.275 at 602, 0.2775 at 600). Thrust to weight becomes 4.0, 87.9 N
-per motor at full throttle.
+    `p = 0.13 + (0.95 - 0.13) * r = 0.500`, PWM 1500.
 
-Pitfall found on the way: the container runs on the host network with Jazzy's default
-`ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET`, so a Jazzy simulation on another machine in the
-same LAN appears on the same topics. The first run mixed two vehicles: `hover_test.py`
-saw one at 3 m with PWM 1452 and one on the ground, alternating, and the takeoff command
-was refused. `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` fixes it; it is now in
-`ros2_sitl_env.sh`.
+    Check on the PoC runs: `T = 0.225` gives `p = 0.440` (measured 0.452), `T = 0.275` gives `p = 0.487` (measured 0.501). Within 15 PWM.
+
+3. The plugin sets the rotor speed as `w = p * max_rot_velocity`. At hover both sides must give `w_h`:
+
+    `max_rot_velocity = w_h / p = 301 / 0.500 = 602`
+
+    Outside the 634 to 700 band of item 6, so the value changes. 600 is used (0.3 % from 602, below the repeatability of the measurement).
+
+4. Measured with 600 (`kopterworx_flat`, headless, clean storage, 50 s hover at 3 m):
+
+    * mean motor output `p = 0.502`, PWM 1502 (real aircraft 1500)
+    * plugin rotor speed 301.2 rad/s, equal to `0.502 * 600` and to `w_h`
+    * learned `MOT_THST_HOVER` 0.2775
+
+    The learned value is below 0.290 because ArduPilot stores it corrected for air density (`get_compensation_gain`, `T_stored = T * rho / rho_0`) and SITL takes off at CMAC, 584 m above sea level, `rho / rho_0 = 0.945`. At the site: `T = 0.2775 / 0.945 = 0.294`. Equation 2 run forward from `p = 0.502` gives `T = 0.293`, so the two agree, and the real aircraft's 0.290 was learned near sea level. 600 matches the real hover within 1.5 %. Battery voltage plays no part: SITL reports none on `BATT_VOLT_PIN` 14, ArduPilot then uses `lift_max = 1`.
+
+Decision: `max_rot_velocity = 600`. Thrust to weight becomes `4 k (600)^2 / (m g) = 4.0` (was 4.9 with 667).
+
+Measurement note: the PoC container is on the host network and Jazzy discovers the whole subnet by default, so a Jazzy simulation on another machine in the LAN appears on the same topics; the first run mixed two vehicles. Run gates with `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (USOIT-49 puts it in the image).
 
 ## Reproduce
 
