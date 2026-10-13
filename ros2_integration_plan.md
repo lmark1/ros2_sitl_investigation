@@ -66,7 +66,7 @@ These supersede the text below where they differ.
   `ci.yml` is one job running `docker/build-push-action` with `push` false on pull
   requests; the Noetic bare-runner build job is dropped (the image's last layer runs the
   same `install_and_setup_workspace.sh`, so each push compiled everything twice).
-  `concurrency` key instead of the archived `cancel-workflow-action`. `.ci/` keeps only
+  `concurrency` key instead of `cancel-workflow-action` (its own README says to use the native `concurrency` property). `.ci/` keeps only
   `ci_run_tests.sh` for the tests story. Workflows are tried locally with
   `act pull_request --secret-file .secrets`. Jazzy tags start at `1.0.0`, stack tagged
   before sim. `uav_ros_tests` is not ported in USOIT-13.
