@@ -312,7 +312,11 @@ motor_speed). Worth proposing upstream, it does not change existing behaviour.
   after a hover or read `mavros/rc/out`.
 - Analytically 0.29 corresponds to a multiplier of about 602. Measured 2026-10-05 with a
   scratch copy of the model (see next section): 602 gives hover PWM 1501 and a learned
-  `MOT_THST_HOVER` of 0.275, 667 gives 1452 and 0.225. Not changed, see the conclusion below.
+  `MOT_THST_HOVER` of 0.275, 667 gives 1452 and 0.225.
+- Settled 2026-10-13 (USOIT-36 part B): the real take-off mass is 9 kg, so the value is
+  600. Measured: PWM 1502 (real aircraft 1500 by its own curve), 301.2 rad/s, learned
+  0.2775; the rest of the gap to 0.290 is ArduPilot's air density compensation at the
+  584 m SITL home. `thrust_multiplier.md`, "Part B result".
 
 ### thrust_multiplier: what it is, where 667 comes from, whether to keep it (2026-10-05)
 
@@ -489,6 +493,11 @@ with `kopterworx_v432.params`, this laptop (24 threads, RTX 4070 Laptop).
 - `kopterworx_sitl_overrides.parm`: CHUTE_ENABLED 0, AHRS_TRIM_X/Y 0 for SITL.
 - mavros2 `thrust_scaling` set at runtime (nan from apm_config.yaml on
   ros-jazzy-mavros 2.15.1), see step 2.
+- ROS 2 discovery crosses the LAN: host network plus Jazzy's default
+  `ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET` made a colleague's Jazzy simulation show up on
+  this container's `/mavros` topics (2026-10-13, hover test saw two vehicles). Fixed with
+  `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` in `ros2_sitl_env.sh`; goes into the
+  uav_ros_simulation image (USOIT-49).
 - Failed and not pursued: MAVProxy `reboot` of SITL in this launch (crash),
   `set_stream_rate` through the MAVProxy udp forward (stays 2 Hz), software rendering
   inside the GPU container (Mesa refuses), iris on the motor model with default gains

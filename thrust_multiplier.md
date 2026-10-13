@@ -67,6 +67,7 @@ sensor links), weight 88.78 N.
 |---|---|---|---|---|
 | 667 (repo) | 1452 (0.452) | 301.48 rad/s | 88.74 N | 0.225 |
 | 602 (scratch copy of the model) | 1501 (0.501) | 301.60 rad/s | 88.81 N | 0.275 |
+| 600 (scratch copy, 2026-10-13) | 1502 (0.502) | 301.2 rad/s | 88.57 N | 0.2775 |
 
 - 0.452 x 667 = 301.5 and 0.501 x 602 = 301.6. The plugin does what the code says.
 - Thrust equals weight to 0.05 %. The motor model does what its constants say.
@@ -82,6 +83,8 @@ causes, not separable from the repo:
 1. the real maximum rotor speed is lower than 667 rad/s (around 600 would fit),
 2. the real take-off mass is above 9 kg,
 3. the real thrust is below the APC static table.
+
+Resolved 2026-10-13, see "Part B result" below: the take-off mass is 9 kg, cause 1.
 
 ## What it affects
 
@@ -150,6 +153,48 @@ The PoC generator `ros2_sitl/kopterworx_gz/scripts/gen_model.py` has the same tw
 constants (`MAX_ROT_VELOCITY`, `THRUST_MULTIPLIER`, both 667). It is reference material
 and was left as it is.
 
+## Part B result (2026-10-13)
+
+Input: real take-off mass 9 kg (Lovro, 2026-10-13). No flight log is needed: the learned
+`MOT_THST_HOVER` 0.290 in `kopterworx_v432.params` is the hover output in disguise. Run
+back through the aircraft's own curve (`MOT_THST_EXPO` 0.65, `MOT_SPIN_MIN` 0.13,
+`MOT_SPIN_MAX` 0.95; `AP_Motors_Thrust_Linearization.cpp`) it gives a motor output of
+0.500, PWM 1500, at full battery. The same inversion reproduces the two measured rows
+above within 1 % (0.225 gives 1440 vs 1452 measured, 0.275 gives 1486 vs 1501).
+
+Candidate by the formula in the ticket: `sqrt(9 * 9.81 / (4 k)) / 0.500` = 602 (604 with
+the 9.05 kg model mass). Outside the 634 to 700 band, so the value changes.
+
+Measured with 600 (the eight `667.0` in `model.sdf` set to `600.0`, clean storage, 50 s
+hover at 3 m, headless):
+
+| | measured | real aircraft |
+|---|---|---|
+| mean normalised output | 0.502 (PWM 1502) | 0.500 (PWM 1500) |
+| rotor speed published by the plugin | 301.2 rad/s (0.502 x 600; gate 301 within 5) | |
+| learned `MOT_THST_HOVER` | 0.2775 | 0.290 |
+
+Why the learned value is still 4 % under 0.290 although the PWM matches: ArduPilot
+compensates the throttle for air density (`Thrust_Linearization::get_compensation_gain`,
+`AP_MOTORS_DENSITY_COMP`), so the stored hover value is for sea level. SITL flies at
+CMAC, 584 m above sea level (`Tools/autotest/locations.txt`), density ratio 0.945. The
+hover thrust at the site is 0.2775 / 0.945 = 0.294, the same as the 0.293 the curve gives
+for PWM 1502. The real aircraft learned 0.290 near sea level. With 600 the simulated
+hover matches the real one within 1.5 %; what is left in the stored parameter is the
+SITL home altitude, not the model. Battery voltage plays no part: SITL reports no
+voltage on `BATT_VOLT_PIN` 14 (a Cube pin), and ArduPilot then keeps `lift_max` at 1.
+
+Decision: `max_rot_velocity` 600. The candidate is 602; 0.3 % is below the repeatability
+of the learned value (0.275 at 602, 0.2775 at 600). Thrust to weight becomes 4.0, 87.9 N
+per motor at full throttle.
+
+Pitfall found on the way: the container runs on the host network with Jazzy's default
+`ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET`, so a Jazzy simulation on another machine in the
+same LAN appears on the same topics. The first run mixed two vehicles: `hover_test.py`
+saw one at 3 m with PWM 1452 and one on the ground, alternating, and the takeoff command
+was refused. `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` fixes it; it is now in
+`ros2_sitl_env.sh`.
+
 ## Reproduce
 
 Inside the container (`ros2_sitl/docker_run.sh -d`, then `ros2_sitl/docker_run.sh`):
@@ -175,5 +220,5 @@ Motor constants: load `motor_parameters/22x8.mat` from `larics/ardupilot_gazebo`
 
 USOIT-36 "5a. Kopterworx model: replace thrust_multiplier with max_rot_velocity, check the
 value against the real aircraft", subtask of USOIT-11. Part A is the rename (no
-behaviour change), part B the value and waits for the real-aircraft number. It overrides
+behaviour change), part B the value: settled 2026-10-13 at 600, Toni applies it. It overrides
 the "multiplier 667" wording in USOIT-25 item 4. USOIT-32 no longer mentions the value.

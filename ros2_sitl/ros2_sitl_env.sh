@@ -9,3 +9,6 @@ export PATH=$PATH:/root/ros2_ws/src/ardupilot/Tools/autotest
 # See ArduPilot/ardupilot_gazebo#109 and ArduPilot/ardupilot_gz#96.
 export GZ_SIM_RESOURCE_PATH=${GZ_SIM_RESOURCE_PATH}:/root/ros2_ws/install/ardupilot_gazebo/share
 export SDF_PATH=${SDF_PATH}:/root/ros2_ws/install/ardupilot_gazebo/share
+# The container is on the host network. Jazzy discovers ROS 2 nodes on the whole subnet
+# by default, so another machine's simulation lands on the same topics. Localhost only.
+export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST

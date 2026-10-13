@@ -361,7 +361,7 @@ dropped on 2026-10-08. A world that turns out to be needed gets its own ticket.
 | 3 | Parameter files are from 4.3.2/4.4.3 (`kopterworx_v432.params`, `tuned_v443.params`) | load on 4.6.3 in M0, list renamed or rejected parameters, produce a `kopterworx_v463.params` |
 | 4 | mavros2 behaviour differences (thrust_scaling, stream rates, QoS) | M0 item 3, explicit config in the launch files |
 | 5 | URDF xacro through the gz URDF converter | M0 item 4, fallback SDF xacro |
-| 6 | Hover throttle differs from the value stored in the aircraft file (0.225 learned vs 0.290) | `thrust_multiplier.md`, USOIT-36: the multiplier becomes `max_rot_velocity` (one constant), its value is checked against a real-aircraft number |
+| 6 | Hover throttle differs from the value stored in the aircraft file (0.225 learned vs 0.290) | Settled 2026-10-13: take-off mass 9 kg gives `max_rot_velocity` 600, measured (PWM 1502, learned 0.2775, the rest is the 584 m SITL home). USOIT-36 applies it, `thrust_multiplier.md` "Part B result" |
 | 7 | External model dependencies with no gz version: `storm_gazebo_ros_magnet`, `velodyne_simulator` LiDAR-X, `aerial_manipulators_description` | lidar in M4 from its definition, magnet and manipulator in M6 |
 | 8 | ROS 2 drivers for the onboard sensors | confirm per sensor at the start of M5 |
 | 9 | Drift between `main` and `jazzy` during four months | cherry-pick rule in section 4, keep the port of each package short |
@@ -376,8 +376,7 @@ dropped on 2026-10-08. A world that turns out to be needed gets its own ticket.
    in M4. If one of them is meant to be retired, say so and the port shrinks.
 2. **Scope of v1.** Kopterworx only, with camera, and lidar in M4. Worlds: `empty` only
    (decided 2026-10-08). Which other vehicles and sessions are still in use?
-3. **Real-aircraft number** for USOIT-36: maximum motor rpm with the 22x8 propeller, or hover
-   PWM from a flight log with the take-off mass. (Replaces the Noetic hover number.)
+3. ~~Real-aircraft number for USOIT-36~~ Answered 2026-10-13: take-off mass 9 kg, value 600.
 4. **Land-detector fix** on `Larics-4.6.3`: needed or obsolete?
 5. **Upstream PRs** for the plugin patch and the env hook: yes or keep in the fork.
 6. **Who and when**: one or two people, and the date after which `jazzy` is the default.
