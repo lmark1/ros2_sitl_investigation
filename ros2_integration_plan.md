@@ -74,7 +74,9 @@ These supersede the text below where they differ.
   `jazzy` HEAD. Jazzy tags start at `1.0.0`, stack tagged
   before sim. `uav_ros_tests` is not ported in USOIT-13. colcon build settings:
   `~/.colcon/defaults.yaml` only, no mixins (decided 2026-10-13; colcon has no
-  catkin-style profiles).
+  catkin-style profiles). Pins written into USOIT-47 and 48 from the PoC container
+  (`pip3 list`, 2026-10-13): gitman 3.8.1, MAVProxy 1.8.74, pymavlink 2.4.49,
+  dronecan 1.0.27, ptyprocess 0.7.0.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
