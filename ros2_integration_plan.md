@@ -55,6 +55,11 @@ These supersede the text below where they differ.
   `src` and `build`; stack `shell_scripts.sh` carries the USOIT-30 helper names
   (`waitForArmable`, `waitForModel`); USOIT-34 depends on USOIT-36 and its upstream-PR
   item waits for decision 5. Toni closed USOIT-27, 28, 29, 30 and 32 on 2026-10-13.
+  Python packages natively, no venv (decided 2026-10-13): 24.04's pip refuses system
+  installs (PEP 668), so `gitman.sh` and `ardupilot_dep.sh` export
+  `PIP_BREAK_SYSTEM_PACKAGES=1`; ArduPilot's `install-prereqs` is not called on noble
+  because it always creates `~/venv-ardupilot` and offers to edit the login file; its apt
+  and pip lists go into `ardupilot_dep.sh` as the PoC Dockerfile did (lines 24 to 35).
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
