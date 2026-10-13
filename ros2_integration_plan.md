@@ -60,9 +60,16 @@ These supersede the text below where they differ.
   `PIP_BREAK_SYSTEM_PACKAGES=1`; ArduPilot's `install-prereqs` is not called on noble
   because it always creates `~/venv-ardupilot` and offers to edit the login file; its apt
   and pip lists go into `ardupilot_dep.sh` as the PoC Dockerfile did (lines 24 to 35).
-  CI on jazzy (decided 2026-10-13): `ci.yml` keeps the build job because `deploy` needs
-  it; `.ci/ci_before_install.sh` and `ci_test_build.sh` become one line each,
-  `ci_run_tests.sh` and its workflow step wait for USOIT-13.
+  CI on jazzy (decided 2026-10-13, replaces the earlier "keep the build job"): USOIT-13
+  re-scoped to CI only, subtasks USOIT-51 to 53 (stack `Dockerfile.source` + `ci.yml`,
+  stack `Dockerfile.binary` + `cd.yml`, sim binary on top of the stack binary). Every
+  `ci.yml` is one job running `docker/build-push-action` with `push` false on pull
+  requests; the Noetic bare-runner build job is dropped (the image's last layer runs the
+  same `install_and_setup_workspace.sh`, so each push compiled everything twice).
+  `concurrency` key instead of the archived `cancel-workflow-action`. `.ci/` keeps only
+  `ci_run_tests.sh` for the tests story. Workflows are tried locally with
+  `act pull_request --secret-file .secrets`. Jazzy tags start at `1.0.0`, stack tagged
+  before sim. `uav_ros_tests` is not ported in USOIT-13.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
@@ -234,9 +241,11 @@ Exit: the onboarding flight works on Jazzy: `./start.sh`, automatic takeoff to 2
 - `uav_ros_tests`: the same scenario (3 cycles of takeoff to 2 m, random tracker pose,
   land; 0.3 m tolerances) as `launch_testing` + gtest. Its test description is the only
   Python launch file in the port.
-- CI in both repos on the jazzy branches: build, SITL build, integration
-  test, headless without rendering sensors. CD: `yonx/uav_ros_stack:noble-bin-<tag>`,
-  `yonx/uav_ros_simulation:noble-bin-<tag>`, source image `:noble` (USOIT-49, 50).
+- CI in both repos on the jazzy branches (USOIT-13, subtasks USOIT-51 to 53 plus
+  USOIT-49, 50): every push and PR builds the source image; pushes publish
+  `yonx/uav_ros_stack_source:noble` and `yonx/uav_ros_simulation_source:noble`; tags
+  publish `yonx/uav_ros_stack:noble-bin-<tag>` and `yonx/uav_ros_simulation:noble-bin-<tag>`.
+  The integration test in CI comes with the `uav_ros_tests` story, after USOIT-14 to 17.
 - Parity run against Noetic, stack level: same trajectory in both, compare tracking
   error. The sim-only parity (hover throttle and attitude step response) is USOIT-32 and
   runs earlier. Neither settles `thrust_multiplier`: Noetic uses the same numbers, see
