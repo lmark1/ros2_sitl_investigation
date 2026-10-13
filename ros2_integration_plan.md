@@ -31,9 +31,14 @@ These supersede the text below where they differ.
 - **Jira**: the simulation part is USOIT-11 with subtasks USOIT-21 to 36. Dropped on
   2026-10-08: USOIT-31 (sim-only CI smoke test) and USOIT-33 (additional worlds).
   Install scripts and Docker images are USOIT-12 with subtasks USOIT-47 to 50
-  (2026-10-12): stack install scripts on 24.04 and colcon, sim install chain, source
-  image, binary image. One env file `~/.uav_env.sh` instead of bashrc edits, one
-  `noble` tag per image with GPU chosen at run time, real binary image without sources.
+  (2026-10-12, validated 2026-10-13): stack install scripts on 24.04 and colcon, sim
+  install chain, source image, binary image. One env file `~/.uav_env.sh` instead of
+  bashrc edits, one `noble` tag per image with GPU chosen at run time, real binary image
+  without sources, `sim_vehicle.py --no-rebuild`. Checked against the files: noble's
+  `python3-future` is 0.18.2 (pip `future` comes from ArduPilot `install-prereqs`),
+  `ament_cmake_core` depends on `cmake` so the toolchain cannot be purged from an image,
+  `run_copter.sh` does not pass `--no-rebuild` today, the gitman `stack` source runs
+  `gitman install core` as a post-script.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
