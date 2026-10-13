@@ -48,6 +48,13 @@ These supersede the text below where they differ.
   The sim `dependencies/ros.sh` is deleted on jazzy (USOIT-48 item 6): on Noetic it is a
   copy of the stack's ROS installer, and USOIT-30 had recreated it; the sim's ROS packages
   go to `ardupilot_dep.sh` as on Noetic.
+  Cross-check of the open tickets (2026-10-13), fixed on Jira: sim ROS packages had two
+  homes (stack `general.sh` keeps mavros and the GeographicLib datasets, sim
+  `ardupilot_dep.sh` keeps `ros-gz`, `xacro`, `robot-state-publisher`); the binary image
+  builds without `symlink-install` (`COLCON_DEFAULTS_FILE`) because the strip deletes
+  `src` and `build`; stack `shell_scripts.sh` carries the USOIT-30 helper names
+  (`waitForArmable`, `waitForModel`); USOIT-34 depends on USOIT-36 and its upstream-PR
+  item waits for decision 5. Toni closed USOIT-27, 28, 29, 30 and 32 on 2026-10-13.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
