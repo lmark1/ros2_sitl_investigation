@@ -60,6 +60,9 @@ These supersede the text below where they differ.
   `PIP_BREAK_SYSTEM_PACKAGES=1`; ArduPilot's `install-prereqs` is not called on noble
   because it always creates `~/venv-ardupilot` and offers to edit the login file; its apt
   and pip lists go into `ardupilot_dep.sh` as the PoC Dockerfile did (lines 24 to 35).
+  CI on jazzy (decided 2026-10-13): `ci.yml` keeps the build job because `deploy` needs
+  it; `.ci/ci_before_install.sh` and `ci_test_build.sh` become one line each,
+  `ci_run_tests.sh` and its workflow step wait for USOIT-13.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
