@@ -33,8 +33,9 @@ These supersede the text below where they differ.
   Install scripts and Docker images are USOIT-12 with subtasks USOIT-47 to 50
   (2026-10-12, validated 2026-10-13): stack install scripts on 24.04 and colcon, sim
   install chain, source image, binary image. One env file `~/.uav_env.sh` instead of
-  bashrc edits, one `noble` tag per image with GPU chosen at run time (`nvidia/opengl`,
-  the Noetic base, has no 24.04 tag), real binary image without workspace sources and
+  bashrc edits, one image per repo with tags `noble` and `noble-nogpu` on the same digest
+  and GPU chosen at run time (`nvidia/opengl`, the Noetic base, has no 24.04 tag; it is
+  ubuntu plus five GL packages and two env lines), real binary image without workspace sources and
   clones, firmware tree kept as built. Checked against the files: noble's
   `python3-future` is 0.18.2 (pip `future` comes from ArduPilot `install-prereqs`),
   `ament_cmake_core` depends on `cmake` so the toolchain cannot be purged from an image,
