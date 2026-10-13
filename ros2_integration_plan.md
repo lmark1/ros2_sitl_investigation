@@ -68,7 +68,10 @@ These supersede the text below where they differ.
   same `install_and_setup_workspace.sh`, so each push compiled everything twice).
   `concurrency` key instead of `cancel-workflow-action` (its own README says to use the native `concurrency` property). `.ci/` keeps only
   `ci_run_tests.sh` for the tests story. Workflows are tried locally with
-  `act pull_request --secret-file .secrets`. Jazzy tags start at `1.0.0`, stack tagged
+  `act pull_request --secret-file .secrets`; the job starts with `actions/checkout` and
+  builds `context: .` (act has no API token for the Git context) and passes
+  `REF=${{ github.head_ref || github.ref_name }}` so a PR builds its own branch, not
+  `jazzy` HEAD. Jazzy tags start at `1.0.0`, stack tagged
   before sim. `uav_ros_tests` is not ported in USOIT-13. colcon build settings:
   `~/.colcon/defaults.yaml` only, no mixins (decided 2026-10-13; colcon has no
   catkin-style profiles).
