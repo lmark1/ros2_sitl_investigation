@@ -45,6 +45,9 @@ These supersede the text below where they differ.
   `common.sh`, ccache). Kept as on Noetic (decided 2026-10-13): the `stack_sparse` gitman
   source and the `--sparse` flag, so the binary image adds the sim to the copied stack
   install space without cloning the stack packages again; one workspace, not an underlay.
+  The sim `dependencies/ros.sh` is deleted on jazzy (USOIT-48 item 6): on Noetic it is a
+  copy of the stack's ROS installer, and USOIT-30 had recreated it; the sim's ROS packages
+  go to `ardupilot_dep.sh` as on Noetic.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
