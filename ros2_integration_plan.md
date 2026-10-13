@@ -76,7 +76,11 @@ These supersede the text below where they differ.
   `~/.colcon/defaults.yaml` only, no mixins (decided 2026-10-13; colcon has no
   catkin-style profiles). Pins written into USOIT-47 and 48 from the PoC container
   (`pip3 list`, 2026-10-13): gitman 3.8.1, MAVProxy 1.8.74, pymavlink 2.4.49,
-  dronecan 1.0.27, ptyprocess 0.7.0.
+  dronecan 1.0.27, ptyprocess 0.7.0. Checked with `gh` on 2026-10-13: repo secrets are
+  `SSH_PRIVATE_KEY`, `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD` on both repos plus the
+  `*2` pair on the sim, so the jazzy workflows need no new secret; `uav_ros_stack` has
+  no `jazzy` branch yet (USOIT-47 creates it). Decision 5 closed: the Actuators patch
+  and the env hook fix stay in the fork, no upstream pull requests.
 - **thrust_multiplier** (2026-10-05): it is the rotor speed at full throttle, the same
   quantity as `max_rot_velocity`. Write-up in `thrust_multiplier.md`, fix in USOIT-36.
 
@@ -415,5 +419,5 @@ dropped on 2026-10-08. A world that turns out to be needed gets its own ticket.
    (decided 2026-10-08). Which other vehicles and sessions are still in use?
 3. ~~Real-aircraft number for USOIT-36~~ Closed 2026-10-13: there is no real aircraft, 667 stays.
 4. **Land-detector fix** on `Larics-4.6.3`: needed or obsolete?
-5. **Upstream PRs** for the plugin patch and the env hook: yes or keep in the fork.
+5. ~~Upstream PRs for the plugin patch and the env hook~~ Closed 2026-10-13: kept in the fork, no upstream pull requests.
 6. **Who and when**: one or two people, and the date after which `jazzy` is the default.
